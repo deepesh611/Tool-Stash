@@ -1,4 +1,3 @@
-import json
 from typing import AsyncGenerator
 
 import anthropic
@@ -6,11 +5,8 @@ import anthropic
 from app.config import settings
 from app.llm_settings import current_model
 from app.providers.base import LLMProvider, RESEARCH_SYSTEM_PROMPT, SUGGEST_SYSTEM_TEMPLATE
-from app.providers.result import emit_research_result
-
-
-def _sse(payload: dict) -> str:
-    return f"data: {json.dumps(payload)}\n\n"
+from app.providers.live_sources import LiveResearch
+from app.providers.result import emit_research_result, sse
 
 
 class ClaudeProvider(LLMProvider):
@@ -19,9 +15,13 @@ class ClaudeProvider(LLMProvider):
         self._model = current_model("claude")
 
     async def research_stream(self, query: str) -> AsyncGenerator[str, None]:
-        yield _sse({"type": "status", "message": f"Starting research with Claude ({self._model})..."})
+        yield sse({"type": "status", "message": f"Starting research with Claude ({self._model})..."})
 
-        messages = [{"role": "user", "content": f"Research this tool: {query}"}]
+        live = LiveResearch(query)
+        async for event in live.stream():
+            yield event
+
+        messages = [{"role": "user", "content": live.user_content}]
         tools_config = [{"type": "web_search_20260209", "name": "web_search"}]
 
         final_text = ""
@@ -48,7 +48,7 @@ class ClaudeProvider(LLMProvider):
                     pauses += 1
                     if pauses > max_pauses:
                         break
-                    yield _sse({"type": "status", "message": f"Gathering more results... ({pauses}/{max_pauses})"})
+                    yield sse({"type": "status", "message": f"Gathering more results... ({pauses}/{max_pauses})"})
                     messages.append({"role": "assistant", "content": response.content})
                     continue
                 else:
@@ -58,17 +58,18 @@ class ClaudeProvider(LLMProvider):
             for chunk in emit_research_result(
                 final_text,
                 query,
+                search_hits=live.hits,
                 error_message=f"Claude API error: {e.message}",
             ):
                 yield chunk
             return
 
-        for chunk in emit_research_result(final_text, query):
+        for chunk in emit_research_result(final_text, query, search_hits=live.hits):
             yield chunk
 
     async def suggest_stream(self, description: str, tools: list) -> AsyncGenerator[str, None]:
         if not tools:
-            yield _sse({"type": "text", "content": "Your stash is empty! Add some tools first using the **Add Tool** page."})
+            yield sse({"type": "text", "content": "Your stash is empty! Add some tools first using the **Add Tool** page."})
             yield "data: [DONE]\n\n"
             return
 
@@ -86,8 +87,8 @@ class ClaudeProvider(LLMProvider):
                 messages=[{"role": "user", "content": description}],
             ) as stream:
                 for chunk in stream.text_stream:
-                    yield _sse({"type": "text", "content": chunk})
+                    yield sse({"type": "text", "content": chunk})
         except anthropic.APIError as e:
-            yield _sse({"type": "error", "message": f"Claude API error: {e.message}"})
+            yield sse({"type": "error", "message": f"Claude API error: {e.message}"})
 
         yield "data: [DONE]\n\n"

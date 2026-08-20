@@ -1,4 +1,3 @@
-import json
 from typing import AsyncGenerator
 
 from openai import OpenAI
@@ -6,11 +5,8 @@ from openai import OpenAI
 from app.config import settings
 from app.llm_settings import current_model
 from app.providers.base import LLMProvider, RESEARCH_SYSTEM_PROMPT, SUGGEST_SYSTEM_TEMPLATE
-from app.providers.result import emit_research_result
-
-
-def _sse(payload: dict) -> str:
-    return f"data: {json.dumps(payload)}\n\n"
+from app.providers.live_sources import LiveResearch
+from app.providers.result import emit_research_result, sse
 
 
 class OpenAIProvider(LLMProvider):
@@ -19,36 +15,42 @@ class OpenAIProvider(LLMProvider):
         self._model = current_model("openai")
 
     async def research_stream(self, query: str) -> AsyncGenerator[str, None]:
-        yield _sse({"type": "status", "message": f"Researching with {self._model}..."})
+        yield sse({"type": "status", "message": f"Researching with {self._model}..."})
 
-        # Use responses API with web_search_preview if model supports it,
-        # otherwise fall back to prompt-only chat completion.
+        live = LiveResearch(query)
+        async for event in live.stream():
+            yield event
+
+        prompt = f"{RESEARCH_SYSTEM_PROMPT}\n\n{live.user_content}"
+        final_text = ""
         try:
             response = self._client.responses.create(
                 model=self._model,
                 tools=[{"type": "web_search_preview"}],
-                input=f"{RESEARCH_SYSTEM_PROMPT}\n\nResearch this tool: {query}",
+                input=prompt,
             )
             final_text = response.output_text or ""
         except Exception:
-            # Fallback: chat completions without web search
-            yield _sse({"type": "status", "message": "Web search unavailable, using model knowledge..."})
+            yield sse({
+                "type": "status",
+                "message": "Provider web search unavailable; using the pages we already fetched.",
+            })
             completion = self._client.chat.completions.create(
                 model=self._model,
                 messages=[
                     {"role": "system", "content": RESEARCH_SYSTEM_PROMPT},
-                    {"role": "user", "content": f"Research this tool: {query}"},
+                    {"role": "user", "content": live.user_content},
                 ],
                 max_tokens=4096,
             )
             final_text = completion.choices[0].message.content or ""
 
-        for chunk in emit_research_result(final_text, query):
+        for chunk in emit_research_result(final_text, query, search_hits=live.hits):
             yield chunk
 
     async def suggest_stream(self, description: str, tools: list) -> AsyncGenerator[str, None]:
         if not tools:
-            yield _sse({"type": "text", "content": "Your stash is empty! Add some tools first."})
+            yield sse({"type": "text", "content": "Your stash is empty! Add some tools first."})
             yield "data: [DONE]\n\n"
             return
 
@@ -71,8 +73,8 @@ class OpenAIProvider(LLMProvider):
             for chunk in stream:
                 delta = chunk.choices[0].delta.content
                 if delta:
-                    yield _sse({"type": "text", "content": delta})
+                    yield sse({"type": "text", "content": delta})
         except Exception as e:
-            yield _sse({"type": "error", "message": f"OpenAI error: {str(e)}"})
+            yield sse({"type": "error", "message": f"OpenAI error: {str(e)}"})
 
         yield "data: [DONE]\n\n"

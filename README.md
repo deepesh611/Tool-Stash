@@ -15,10 +15,21 @@ services:
     ports:
       - "8001:8000"
     environment:
+      - DATABASE_URL=sqlite:////data/toolstash.db
       - LLM_PROVIDER=ollama
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
       - OLLAMA_MODEL=llama3.1
-      - DATABASE_URL=sqlite:////data/toolstash.db
+      # Anthropic (Claude)
+ANTHROPIC_API_KEY=sk-ant-api03-...
+ANTHROPIC_MODEL=claude-sonnet-5
+
+# OpenAI
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4o
+
+# Ollama (local)
+OLLAMA_BASE_URL=http://host.docker.internal:11434
+OLLAMA_MODEL=llama3.1
     volumes:
       - ./data:/data
     extra_hosts:

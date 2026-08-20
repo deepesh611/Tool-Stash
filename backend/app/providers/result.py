@@ -7,6 +7,10 @@ def sse(payload: dict) -> str:
     return f"data: {json.dumps(payload)}\n\n"
 
 
+def activity_event(action: str, phase: str, **fields) -> str:
+    return sse({"type": "activity", "action": action, "phase": phase, **fields})
+
+
 def extract_json_block(text: str) -> str | None:
     fenced = re.search(r"```json\s*(.*?)\s*```", text, re.DOTALL)
     if fenced:
