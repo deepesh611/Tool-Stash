@@ -17,6 +17,8 @@ services:
       - DATABASE_URL=sqlite:////data/toolstash.db
     volumes:
       - ./data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -29,7 +31,11 @@ services:
     ports:
       - "3000:80"
     environment:
-      - BACKEND_URL=${BACKEND_URL:-http://backend:8000}
+      # Address of the backend *from inside this container*. Not localhost.
+      - BACKEND_URL=http://backend:8000
+      - BACKEND_HOST_PORT=8001
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - backend
     restart: unless-stopped

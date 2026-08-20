@@ -21,7 +21,14 @@ services:
       - DATABASE_URL=sqlite:////data/toolstash.db
     volumes:
       - ./data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   frontend:
     image: nerdygamer611/tool-stash-frontend:latest
@@ -29,6 +36,9 @@ services:
       - "3000:80"
     environment:
       - BACKEND_URL=http://backend:8000
+      - BACKEND_HOST_PORT=8001
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - backend
     restart: unless-stopped
@@ -40,7 +50,8 @@ docker compose up -d
 
 Open [http://localhost:3000](http://localhost:3000).
 
-- **Ollama:** install [Ollama](https://ollama.com), pull a model (`ollama pull llama3.1`), keep it running. On Linux, `host.docker.internal` may need `extra_hosts: ["host.docker.internal:host-gateway"]`.
+- **Ollama:** install [Ollama](https://ollama.com), pull a model (`ollama pull llama3.1`), keep it running. `extra_hosts` lets the backend reach Ollama on the host (needed on Linux).
+- Frontend and backend must share a Docker network. `BACKEND_URL` is `http://backend:8000` (compose service name + **internal** port). Do not use `localhost:8001`.
 - **Claude / OpenAI:** set `LLM_PROVIDER=claude` or `openai` and the matching API key (see env vars below). You can also switch provider and model in the UI.
 - Stash data is stored in `./data/toolstash.db`. Export / Import on the Browse page copies tools between machines.
 
@@ -66,7 +77,8 @@ App: [http://localhost:3000](http://localhost:3000) · API: [http://localhost:80
 | `OLLAMA_MODEL` | `llama3.1` | Must be pulled locally |
 | `OLLAMA_API_KEY` | | Optional. [Ollama cloud web search](https://ollama.com/settings/keys); otherwise DuckDuckGo + page fetch |
 | `DATABASE_URL` | `sqlite:////data/toolstash.db` | |
-| `BACKEND_URL` | `http://backend:8000` | Frontend nginx proxy target. Origin only, no trailing slash. Local Vite uses `http://localhost:8000` if unset. |
+| `BACKEND_URL` | `http://backend:8000` | URL the **frontend container** uses to reach the API. Origin only, no trailing slash. `localhost` is wrong here. Separate-container deploys fall back to the host at `BACKEND_HOST_PORT`. |
+| `BACKEND_HOST_PORT` | `8001` | Host port of the backend, used only when the `backend` hostname is not on the frontend's Docker network. |
 
 Do not bake API keys into images. Pass them as env vars or a local `.env`.
 
