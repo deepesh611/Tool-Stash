@@ -1,0 +1,16 @@
+.env
+node_modules
+frontend/dist/
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+data/llm-settings.json
+
+.DS_Store

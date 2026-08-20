@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-950 text-gray-100 antialiased;
+  }
+
+  ::-webkit-scrollbar {
+    @apply w-1.5;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-700 rounded-full;
+  }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.cursor-blink::after {
+  content: '▋';
+  color: #6366f1;
+  margin-left: 1px;
+  animation: blink 1s step-end infinite;
+}
+
+/* Prose styles for markdown rendering */
+@layer components {
+  .prose-stash h1, .prose-stash h2, .prose-stash h3 {
+    @apply text-white font-semibold;
+  }
+  .prose-stash h2 { @apply text-lg mt-4 mb-2; }
+  .prose-stash h3 { @apply text-base mt-3 mb-1.5; }
+  .prose-stash p { @apply text-gray-300 leading-relaxed mb-3; }
+  .prose-stash ul { @apply list-disc list-inside space-y-1 mb-3; }
+  .prose-stash li { @apply text-gray-300 text-sm; }
+  .prose-stash strong { @apply text-white font-medium; }
+  .prose-stash a { @apply text-brand-400 underline; }
+  .prose-stash a:hover { @apply text-brand-300; }
+  .prose-stash code { @apply text-brand-400 bg-gray-800 px-1 py-0.5 rounded text-sm font-mono; }
+}
