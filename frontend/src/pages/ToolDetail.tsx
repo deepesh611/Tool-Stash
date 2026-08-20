@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import type { Tool } from '../types'
-import { getTool, deleteTool, updateTool } from '../api/tools'
+import { DuplicateToolError, getTool, deleteTool, updateTool } from '../api/tools'
 import CategoryBadge from '../components/CategoryBadge'
 import ToolForm, { type ToolFormValue } from '../components/ToolForm'
 
@@ -57,6 +57,7 @@ export default function ToolDetail() {
   const [notesSaving, setNotesSaving] = useState(false)
   const [notesChanged, setNotesChanged] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [duplicateId, setDuplicateId] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
 
   const toDraft = (item: Tool): ToolFormValue => ({
@@ -111,12 +112,14 @@ export default function ToolDetail() {
     if (!tool) return
     setDraft(toDraft({ ...tool, personal_notes: notes }))
     setSaveError('')
+    setDuplicateId(null)
     setSearchParams({ edit: '1' })
   }
 
   const cancelEdit = () => {
     if (tool) setDraft(toDraft(tool))
     setSaveError('')
+    setDuplicateId(null)
     setSearchParams({})
   }
 
@@ -127,6 +130,7 @@ export default function ToolDetail() {
     if (!tool || !draft) return
     setSaving(true)
     setSaveError('')
+    setDuplicateId(null)
     try {
       const updated = await updateTool(tool.id, {
         name: draft.name,
@@ -149,8 +153,13 @@ export default function ToolDetail() {
       setNotesChanged(false)
       setDraft(toDraft(updated))
       setSearchParams({})
-    } catch {
-      setSaveError('Failed to save changes.')
+    } catch (err) {
+      if (err instanceof DuplicateToolError) {
+        setSaveError(err.message)
+        setDuplicateId(err.id)
+      } else {
+        setSaveError('Failed to save changes.')
+      }
     } finally {
       setSaving(false)
     }
@@ -183,6 +192,15 @@ export default function ToolDetail() {
         {saveError && (
           <div className="mt-4 p-3 bg-red-900/30 border border-red-800/50 rounded-lg text-red-400 text-sm">
             {saveError}
+            {duplicateId != null && (
+              <button
+                type="button"
+                onClick={() => navigate(`/tool/${duplicateId}`)}
+                className="mt-2 block text-brand-400 hover:text-brand-300 underline underline-offset-2"
+              >
+                Open existing tool
+              </button>
+            )}
           </div>
         )}
         <div className="mt-5 flex gap-3">

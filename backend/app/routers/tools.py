@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from typing import Any
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
@@ -39,8 +40,55 @@ def _tool_payload(tool: models.Tool) -> dict:
     return {field: getattr(tool, field) for field in EXPORTABLE_FIELDS}
 
 
-def _duplicate_key(name: str, homepage: str | None, url: str | None) -> str:
-    return f"{(name or '').strip().lower()}|{(homepage or url or '').strip().lower()}"
+def _norm_name(name: str | None) -> str:
+    return (name or "").strip().lower()
+
+
+def _norm_url(url: str | None) -> str:
+    text = (url or "").strip()
+    if not text:
+        return ""
+    if "://" not in text and "." not in text:
+        return text.lower().rstrip("/")
+    parsed = urlparse(text if "://" in text else f"https://{text}")
+    host = (parsed.netloc or "").lower().removeprefix("www.")
+    path = (parsed.path or "").rstrip("/")
+    if not host:
+        return text.lower().rstrip("/")
+    return f"{host}{path}"
+
+
+def _identity_urls(homepage: str | None, url: str | None, github_url: str | None) -> set[str]:
+    return {value for value in (_norm_url(homepage), _norm_url(url), _norm_url(github_url)) if value}
+
+
+def find_duplicate(
+    db: Session,
+    *,
+    name: str | None,
+    homepage: str | None = None,
+    url: str | None = None,
+    github_url: str | None = None,
+    exclude_id: int | None = None,
+) -> models.Tool | None:
+    incoming_name = _norm_name(name)
+    incoming_urls = _identity_urls(homepage, url, github_url)
+    for tool in db.query(models.Tool).all():
+        if exclude_id is not None and tool.id == exclude_id:
+            continue
+        if incoming_name and _norm_name(tool.name) == incoming_name:
+            return tool
+        existing_urls = _identity_urls(tool.homepage, tool.url, tool.github_url)
+        if incoming_urls and incoming_urls & existing_urls:
+            return tool
+    return None
+
+
+def _duplicate_error(tool: models.Tool) -> HTTPException:
+    return HTTPException(
+        status_code=409,
+        detail={"message": f'"{tool.name}" is already in your stash.', "id": tool.id},
+    )
 
 
 @router.get("", response_model=list[schemas.ToolResponse])
@@ -73,6 +121,15 @@ def list_tools(
 @router.post("", response_model=schemas.ToolResponse, status_code=201)
 @router.post("/", response_model=schemas.ToolResponse, status_code=201, include_in_schema=False)
 def create_tool(tool: schemas.ToolCreate, db: Session = Depends(get_db)):
+    existing = find_duplicate(
+        db,
+        name=tool.name,
+        homepage=tool.homepage,
+        url=tool.url,
+        github_url=tool.github_url,
+    )
+    if existing:
+        raise _duplicate_error(existing)
     db_tool = models.Tool(**tool.model_dump())
     db.add(db_tool)
     db.commit()
@@ -117,20 +174,21 @@ def import_tools(body: Any = Body(...), db: Session = Depends(get_db)):
                     payload[field] = []
         incoming.append(schemas.ToolCreate.model_validate(payload))
 
-    existing = {
-        _duplicate_key(tool.name, tool.homepage, tool.url)
-        for tool in db.query(models.Tool).all()
-    }
-
     imported = 0
     skipped = 0
     for item in incoming:
-        key = _duplicate_key(item.name, item.homepage, item.url)
-        if key in existing:
+        existing = find_duplicate(
+            db,
+            name=item.name,
+            homepage=item.homepage,
+            url=item.url,
+            github_url=item.github_url,
+        )
+        if existing:
             skipped += 1
             continue
         db.add(models.Tool(**item.model_dump()))
-        existing.add(key)
+        db.flush()
         imported += 1
 
     db.commit()
@@ -166,7 +224,19 @@ def update_tool(tool_id: int, update: schemas.ToolUpdate, db: Session = Depends(
     tool = db.query(models.Tool).filter(models.Tool.id == tool_id).first()
     if not tool:
         raise HTTPException(status_code=404, detail="Tool not found")
-    for field, value in update.model_dump(exclude_none=True).items():
+    changes = update.model_dump(exclude_none=True)
+    merged_name = changes.get("name", tool.name)
+    existing = find_duplicate(
+        db,
+        name=merged_name,
+        homepage=changes.get("homepage", tool.homepage),
+        url=changes.get("url", tool.url),
+        github_url=changes.get("github_url", tool.github_url),
+        exclude_id=tool.id,
+    )
+    if existing:
+        raise _duplicate_error(existing)
+    for field, value in changes.items():
         setattr(tool, field, value)
     db.commit()
     db.refresh(tool)

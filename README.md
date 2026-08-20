@@ -27,6 +27,8 @@ services:
     image: nerdygamer611/tool-stash-frontend:latest
     ports:
       - "3000:80"
+    environment:
+      - BACKEND_URL=http://backend:8000
     depends_on:
       - backend
     restart: unless-stopped
@@ -64,8 +66,22 @@ App: [http://localhost:3000](http://localhost:3000) · API: [http://localhost:80
 | `OLLAMA_MODEL` | `llama3.1` | Must be pulled locally |
 | `OLLAMA_API_KEY` | | Optional. [Ollama cloud web search](https://ollama.com/settings/keys); otherwise DuckDuckGo + page fetch |
 | `DATABASE_URL` | `sqlite:////data/toolstash.db` | |
+| `BACKEND_URL` | `http://backend:8000` | Frontend nginx proxy target. Origin only, no trailing slash. Local Vite uses `http://localhost:8000` if unset. |
 
 Do not bake API keys into images. Pass them as env vars or a local `.env`.
+
+## Docker Hub CI
+
+Pushes to `main` (and version tags `v*`) build `linux/amd64` + `linux/arm64` images and publish them to Docker Hub.
+
+Add these repository secrets at **Settings → Secrets and variables → Actions**:
+
+| Secret | Value |
+| --- | --- |
+| `DOCKERHUB_USERNAME` | `nerdygamer611` |
+| `DOCKERHUB_TOKEN` | Docker Hub [access token](https://hub.docker.com/settings/security) with Read & Write |
+
+You can also run **Actions → Publish Docker images → Run workflow** to publish without a new commit.
 
 ## Features
 

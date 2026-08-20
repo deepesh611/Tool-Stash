@@ -2,6 +2,29 @@ import type { Tool, ToolResearch } from '../types'
 
 const BASE = '/api/tools'
 
+export class DuplicateToolError extends Error {
+  id: number
+
+  constructor(message: string, id: number) {
+    super(message)
+    this.name = 'DuplicateToolError'
+    this.id = id
+  }
+}
+
+async function throwApiError(res: Response, fallback: string): Promise<never> {
+  const body = await res.json().catch(() => null)
+  const detail = body?.detail
+  if (res.status === 409) {
+    const message =
+      typeof detail === 'string' ? detail : detail?.message ?? fallback
+    const id = typeof detail === 'object' && detail ? detail.id : undefined
+    if (typeof id === 'number') throw new DuplicateToolError(message, id)
+    throw new Error(message)
+  }
+  throw new Error(typeof detail === 'string' ? detail : fallback)
+}
+
 export async function getTools(params?: {
   search?: string
   category?: string
@@ -28,7 +51,7 @@ export async function saveTool(data: ToolResearch): Promise<Tool> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  if (!res.ok) throw new Error('Failed to save tool')
+  if (!res.ok) await throwApiError(res, 'Failed to save tool')
   return res.json()
 }
 
@@ -41,7 +64,7 @@ export async function updateTool(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  if (!res.ok) throw new Error('Failed to update tool')
+  if (!res.ok) await throwApiError(res, 'Failed to update tool')
   return res.json()
 }
 

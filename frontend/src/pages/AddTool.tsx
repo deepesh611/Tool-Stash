@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { ToolResearch } from '../types'
 import { streamResearch } from '../api/ai'
-import { saveTool } from '../api/tools'
+import { DuplicateToolError, saveTool } from '../api/tools'
 import StreamingText from '../components/StreamingText'
 import SearchActivityLog, { applyActivity, type ActivityItem } from '../components/SearchActivityLog'
 import ToolForm, { type ToolFormValue } from '../components/ToolForm'
@@ -19,6 +19,7 @@ export default function AddTool() {
   const [activities, setActivities] = useState<ActivityItem[]>([])
   const [edited, setEdited] = useState<ToolResearch | null>(null)
   const [savedId, setSavedId] = useState<number | null>(null)
+  const [duplicateId, setDuplicateId] = useState<number | null>(null)
   const [error, setError] = useState('')
 
   const handleResearch = async () => {
@@ -28,6 +29,7 @@ export default function AddTool() {
     setResearchText('')
     setActivities([])
     setError('')
+    setDuplicateId(null)
     setStatusMsg('Connecting to AI agent...')
 
     let draft: ToolResearch | null = null
@@ -63,12 +65,19 @@ export default function AddTool() {
   const handleSave = async () => {
     if (!edited) return
     setPhase('saving')
+    setError('')
+    setDuplicateId(null)
     try {
       const saved = await saveTool({ ...edited, url: query.trim() })
       setSavedId(saved.id)
       setPhase('success')
-    } catch {
-      setError('Failed to save. Please try again.')
+    } catch (err) {
+      if (err instanceof DuplicateToolError) {
+        setError(err.message)
+        setDuplicateId(err.id)
+      } else {
+        setError('Failed to save. Please try again.')
+      }
       setPhase('verifying')
     }
   }
@@ -148,6 +157,15 @@ export default function AddTool() {
         {error && (
           <div className="mt-4 p-3 bg-red-900/30 border border-red-800/50 rounded-lg text-red-400 text-sm">
             {error}
+            {duplicateId != null && (
+              <button
+                type="button"
+                onClick={() => navigate(`/tool/${duplicateId}`)}
+                className="mt-2 block text-brand-400 hover:text-brand-300 underline underline-offset-2"
+              >
+                Open existing tool
+              </button>
+            )}
           </div>
         )}
 
