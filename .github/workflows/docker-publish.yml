@@ -46,6 +46,15 @@ jobs:
             type=sha,prefix=sha-
             type=ref,event=tag
 
+      - name: Image version
+        id: ver
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -54,5 +63,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            APP_VERSION=${{ steps.ver.outputs.version }}
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}

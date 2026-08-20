@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     ollama_api_key: str = ""
 
     database_url: str = "sqlite:///./data/toolstash.db"
+    app_version: str = "dev"
 
     class Config:
         env_file = ".env"

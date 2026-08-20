@@ -6,6 +6,8 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
+ARG APP_VERSION=dev
+ENV VITE_APP_VERSION=$APP_VERSION
 RUN npm run build
 
 # Stage 2: Serve

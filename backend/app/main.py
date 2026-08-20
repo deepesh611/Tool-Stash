@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
 from app.database import engine, Base
+from app.config import settings
 from app.routers import tools, ai
 
 logging.basicConfig(
@@ -14,7 +15,7 @@ logging.basicConfig(
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Tool Stash API", version="1.0.0")
+app = FastAPI(title="Tool Stash API", version=settings.app_version)
 
 app.add_middleware(
     CORSMiddleware,
@@ -27,10 +28,7 @@ app.add_middleware(
 app.include_router(tools.router, prefix="/api/tools", tags=["tools"])
 app.include_router(ai.router, prefix="/api/ai", tags=["ai"])
 
-
-@app.get("/", response_class=HTMLResponse)
-def root():
-    return """<!DOCTYPE html>
+ROOT_HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -61,12 +59,19 @@ def root():
   <main>
     <h1>Tool Stash backend is working</h1>
     <p>API is up. Use the app UI, or hit <a href="/health">/health</a>.</p>
+    <p style="margin-top:0.75rem;font-family:ui-monospace,monospace;font-size:0.8rem;color:#6b7280">__APP_VERSION__</p>
   </main>
 </body>
 </html>
 """
 
 
+@app.get("/", response_class=HTMLResponse)
+def root():
+    return ROOT_HTML.replace("__APP_VERSION__", settings.app_version)
+
+
 @app.get("/health")
+@app.get("/api/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "version": settings.app_version}
