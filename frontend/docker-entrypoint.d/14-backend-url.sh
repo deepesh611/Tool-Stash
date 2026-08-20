@@ -1,7 +1,7 @@
 #!/bin/sh
-# Sourced by the nginx image (leave non-executable so export survives).
-# BACKEND_URL is the address *this container* uses to reach the API — not the
-# URL you open in a browser. localhost/127.0.0.1 here is this container.
+# Sourced by the nginx image (must NOT be executable — export has to survive).
+# BACKEND_URL is the address *this container* uses to reach the API, not the
+# URL in the browser. Do not use localhost.
 
 _strip_slash() {
   echo "$1" | sed 's#/*$##'
@@ -20,17 +20,6 @@ _is_loopback() {
 
 _host_of() {
   echo "$1" | sed -E 's#^https?://##' | sed 's#/.*##' | sed 's#:.*##'
-}
-
-_is_ipv4() {
-  echo "$1" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'
-}
-
-_host_resolves() {
-  host="$1"
-  [ -z "$host" ] && return 1
-  _is_ipv4 "$host" && return 0
-  getent hosts "$host" >/dev/null 2>&1
 }
 
 _gateway_ip() {
@@ -55,39 +44,23 @@ _host_docker_internal_ip() {
 BACKEND_HOST_PORT="${BACKEND_HOST_PORT:-8001}"
 BACKEND_URL="$(_strip_slash "${BACKEND_URL:-}")"
 
-compose_url=""
-host_url=""
-
-if _host_resolves backend; then
-  compose_url="http://backend:8000"
-fi
-
-internal_ip="$(_host_docker_internal_ip)"
-gateway_ip="$(_gateway_ip)"
-if [ -n "$internal_ip" ]; then
-  host_url="http://${internal_ip}:${BACKEND_HOST_PORT}"
-elif [ -n "$gateway_ip" ]; then
-  host_url="http://${gateway_ip}:${BACKEND_HOST_PORT}"
-fi
-
-_pick_reachable() {
-  if [ -n "$compose_url" ]; then
-    BACKEND_URL="$compose_url"
-  elif [ -n "$host_url" ]; then
-    BACKEND_URL="$host_url"
+_pick_host_gateway() {
+  internal_ip="$(_host_docker_internal_ip)"
+  gateway_ip="$(_gateway_ip)"
+  if [ -n "$internal_ip" ]; then
+    BACKEND_URL="http://${internal_ip}:${BACKEND_HOST_PORT}"
+  elif [ -n "$gateway_ip" ]; then
+    BACKEND_URL="http://${gateway_ip}:${BACKEND_HOST_PORT}"
   else
     BACKEND_URL="http://host.docker.internal:${BACKEND_HOST_PORT}"
   fi
 }
 
+# Keep http://backend:8000 even if DNS is not ready yet — nginx resolves it
+# per request. Only rewrite loopback, which can never reach a sibling container.
 if [ -z "$BACKEND_URL" ] || _is_loopback "$BACKEND_URL"; then
-  _pick_reachable
-else
-  target="$(_host_of "$BACKEND_URL")"
-  if ! _host_resolves "$target"; then
-    echo "Tool Stash frontend: ${BACKEND_URL} is not reachable from this container; picking a fallback."
-    _pick_reachable
-  fi
+  echo "Tool Stash frontend: ${BACKEND_URL:-empty} is not usable inside this container; using host gateway."
+  _pick_host_gateway
 fi
 
 export BACKEND_URL
