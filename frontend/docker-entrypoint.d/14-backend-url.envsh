@@ -1,7 +1,6 @@
 #!/bin/sh
-# Sourced by the nginx image (must NOT be executable — export has to survive).
-# BACKEND_URL is the address *this container* uses to reach the API, not the
-# URL in the browser. Do not use localhost.
+# Sourced by nginx (*.envsh + executable). BACKEND_URL is from *inside this
+# container* — not the URL in the browser. Do not use localhost.
 
 _strip_slash() {
   echo "$1" | sed 's#/*$##'
@@ -16,10 +15,6 @@ _is_loopback() {
       ;;
   esac
   return 1
-}
-
-_host_of() {
-  echo "$1" | sed -E 's#^https?://##' | sed 's#/.*##' | sed 's#:.*##'
 }
 
 _gateway_ip() {
@@ -56,8 +51,6 @@ _pick_host_gateway() {
   fi
 }
 
-# Keep http://backend:8000 even if DNS is not ready yet — nginx resolves it
-# per request. Only rewrite loopback, which can never reach a sibling container.
 if [ -z "$BACKEND_URL" ] || _is_loopback "$BACKEND_URL"; then
   echo "Tool Stash frontend: ${BACKEND_URL:-empty} is not usable inside this container; using host gateway."
   _pick_host_gateway
