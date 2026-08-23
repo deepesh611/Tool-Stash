@@ -45,6 +45,18 @@ export async function getTool(id: number): Promise<Tool> {
   return res.json()
 }
 
+export async function findDuplicate(
+  query: string,
+): Promise<{ id: number; name: string } | null> {
+  const url = new URL(BASE + '/exists', window.location.origin)
+  url.searchParams.set('q', query)
+  const res = await fetch(url.toString())
+  if (!res.ok) return null
+  const data = await res.json() as { exists?: boolean; id?: number; name?: string }
+  if (!data.exists || typeof data.id !== 'number') return null
+  return { id: data.id, name: data.name || query }
+}
+
 export async function saveTool(data: ToolResearch): Promise<Tool> {
   const res = await fetch(BASE + '/', {
     method: 'POST',

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { ToolResearch } from '../types'
-import { DuplicateToolError, saveTool } from '../api/tools'
+import { DuplicateToolError, findDuplicate, saveTool } from '../api/tools'
 import StreamingText from '../components/StreamingText'
 import SearchActivityLog, { applyActivity, type ActivityItem } from '../components/SearchActivityLog'
 import ToolForm, { type ToolFormValue } from '../components/ToolForm'
@@ -24,11 +24,19 @@ export default function AddTool() {
   const handleResearch = async () => {
     if (!query.trim()) return
     const q = query.trim()
+    setError('')
+    setDuplicateId(null)
+
+    const existing = await findDuplicate(q)
+    if (existing) {
+      setError(`"${existing.name}" is already in your stash.`)
+      setDuplicateId(existing.id)
+      return
+    }
+
     setPhase('researching')
     setResearchText('')
     setActivities([])
-    setError('')
-    setDuplicateId(null)
     setStatusMsg('Connecting to AI agent...')
 
     const { draft, text, activities: activityList, error: researchError } = await collectResearch(q, (event) => {
@@ -78,6 +86,15 @@ export default function AddTool() {
         {error && (
           <div className="mb-4 p-3 bg-red-900/30 border border-red-800/50 rounded-lg text-red-400 text-sm">
             {error}
+            {duplicateId != null && (
+              <button
+                type="button"
+                onClick={() => navigate(`/tool/${duplicateId}`)}
+                className="mt-2 block text-brand-400 hover:text-brand-300 underline underline-offset-2"
+              >
+                Open existing tool
+              </button>
+            )}
           </div>
         )}
         <div className="flex gap-2">

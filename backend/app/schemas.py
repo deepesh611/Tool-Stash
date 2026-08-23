@@ -64,6 +64,12 @@ class ToolResponse(ToolBase):
     model_config = {"from_attributes": True}
 
 
+class DuplicateCheckResponse(BaseModel):
+    exists: bool
+    id: Optional[int] = None
+    name: Optional[str] = None
+
+
 class ResearchRequest(BaseModel):
     query: str
 

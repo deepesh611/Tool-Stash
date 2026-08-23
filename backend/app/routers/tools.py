@@ -13,6 +13,7 @@ from sqlalchemy.orm.attributes import flag_modified
 from app.database import get_db
 from app import models, schemas
 from app.tags import normalize_tag, normalize_tags
+from app.websearch import looks_like_url, normalize_url
 
 router = APIRouter()
 
@@ -101,6 +102,16 @@ def find_duplicate(
         if incoming_urls and incoming_urls & existing_urls:
             return tool
     return None
+
+
+def find_duplicate_for_query(db: Session, query: str) -> models.Tool | None:
+    text = query.strip()
+    if not text:
+        return None
+    if looks_like_url(text):
+        url = normalize_url(text)
+        return find_duplicate(db, name=text, homepage=url, url=url, github_url=url)
+    return find_duplicate(db, name=text)
 
 
 def _duplicate_error(tool: models.Tool) -> HTTPException:
@@ -220,6 +231,14 @@ def import_tools(body: Any = Body(...), db: Session = Depends(get_db)):
 def list_categories(db: Session = Depends(get_db)):
     rows = db.query(models.Tool.category).distinct().all()
     return sorted([r[0] for r in rows])
+
+
+@router.get("/exists", response_model=schemas.DuplicateCheckResponse)
+def check_duplicate(q: str = Query(...), db: Session = Depends(get_db)):
+    existing = find_duplicate_for_query(db, q)
+    if not existing:
+        return schemas.DuplicateCheckResponse(exists=False)
+    return schemas.DuplicateCheckResponse(exists=True, id=existing.id, name=existing.name)
 
 
 @router.get("/tags/all")
