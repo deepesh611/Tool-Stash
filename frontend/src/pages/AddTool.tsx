@@ -1,12 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { ToolResearch } from '../types'
-import { streamResearch } from '../api/ai'
 import { DuplicateToolError, saveTool } from '../api/tools'
 import StreamingText from '../components/StreamingText'
 import SearchActivityLog, { applyActivity, type ActivityItem } from '../components/SearchActivityLog'
 import ToolForm, { type ToolFormValue } from '../components/ToolForm'
-import { salvageResearch } from '../lib/researchDraft'
+import { collectResearch } from '../lib/runResearch'
 
 type Phase = 'input' | 'researching' | 'verifying' | 'saving' | 'success'
 
@@ -32,33 +31,16 @@ export default function AddTool() {
     setDuplicateId(null)
     setStatusMsg('Connecting to AI agent...')
 
-    let draft: ToolResearch | null = null
-    let text = ''
-    let activityList: ActivityItem[] = []
+    const { draft, text, activities: activityList, error: researchError } = await collectResearch(q, (event) => {
+      if (event.type === 'status') setStatusMsg(event.message)
+      else if (event.type === 'activity') setActivities((prev) => applyActivity(prev, event))
+      else if (event.type === 'text') setResearchText(event.content)
+    })
 
-    try {
-      for await (const event of streamResearch(q)) {
-        if (event.type === 'status') {
-          setStatusMsg(event.message)
-        } else if (event.type === 'activity') {
-          activityList = applyActivity(activityList, event)
-          setActivities(activityList)
-        } else if (event.type === 'text') {
-          text = event.content
-          setResearchText(event.content)
-        } else if (event.type === 'result') {
-          draft = event.data
-          setEdited(event.data)
-        } else if (event.type === 'error') {
-          setError(event.message)
-        }
-      }
-    } catch {
-      setError('Network error. Is the backend running?')
-    }
-
-    const recovered = draft ?? salvageResearch(q, text, activityList)
-    setEdited(recovered)
+    setResearchText(text)
+    setActivities(activityList)
+    setEdited(draft)
+    setError(researchError)
     setPhase('verifying')
   }
 

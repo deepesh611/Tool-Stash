@@ -16,7 +16,10 @@ async function* sseStream(url: string, body: unknown): AsyncGenerator<string> {
 
   while (true) {
     const { done, value } = await reader.read()
-    if (done) break
+    if (done) {
+      buffer += decoder.decode()
+      break
+    }
 
     buffer += decoder.decode(value, { stream: true })
     const parts = buffer.split('\n\n')
@@ -27,6 +30,14 @@ async function* sseStream(url: string, body: unknown): AsyncGenerator<string> {
         if (line.startsWith('data: ')) {
           yield line.slice(6)
         }
+      }
+    }
+  }
+
+  for (const part of buffer.split('\n\n')) {
+    for (const line of part.split('\n')) {
+      if (line.startsWith('data: ')) {
+        yield line.slice(6)
       }
     }
   }

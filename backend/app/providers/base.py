@@ -16,10 +16,11 @@ When given a tool name or URL, research:
 - Ideal use cases (when to use it)
 - Limitations (when NOT to use it)
 - Official links (homepage, GitHub, docs)
-- Tags for categorization
+- Tags for categorization. Use lowercase kebab-case only (open-source, cli, docker). Never Title Case, spaces, or # prefixes.
 
-Choose ONE category from:
+Choose a category. Prefer one of:
 Developer Tools | Design | Productivity | AI/ML | Data & Analytics | DevOps & Infrastructure | Communication | Security | Finance | Content Creation | Other
+If none fit, use a short new category (Title Case, 1–4 words).
 
 After your research narrative, you MUST end your response with this exact JSON block (nothing after it):
 

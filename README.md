@@ -53,6 +53,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 - **Ollama:** install [Ollama](https://ollama.com), pull a model (`ollama pull llama3.1`), keep it running. `extra_hosts` lets the backend reach Ollama on the host (needed on Linux).
 - Frontend and backend must share a Docker network. `BACKEND_URL` is `http://backend:8000` (compose service name + **internal** port). Do not use `localhost:8001`.
+- The frontend pins that hostname to an IPv4 address when it starts (needed on Docker Desktop for Windows, where nginx DNS otherwise works once then 502s). If you recreate only the backend, restart the frontend too: `docker compose restart frontend`.
 - **Claude / OpenAI:** set `LLM_PROVIDER=claude` or `openai` and the matching API key (see env vars below). You can also switch provider and model in the UI.
 - Stash data is stored in `./data/toolstash.db`. Export / Import on the Browse page copies tools between machines.
 

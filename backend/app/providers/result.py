@@ -2,6 +2,8 @@ import json
 import re
 from typing import Any, Iterator
 
+from app.tags import normalize_tags
+
 
 def sse(payload: dict) -> str:
     return f"data: {json.dumps(payload)}\n\n"
@@ -12,13 +14,23 @@ def activity_event(action: str, phase: str, **fields) -> str:
 
 
 def extract_json_block(text: str) -> str | None:
-    fenced = re.search(r"```json\s*(.*?)\s*```", text, re.DOTALL)
+    if not text:
+        return None
+    fenced = list(re.finditer(r"```(?:json)?\s*(.*?)\s*```", text, re.DOTALL | re.I))
     if fenced:
-        return fenced.group(1)
+        return fenced[-1].group(1)
     match = re.search(r"\{[\s\S]*\"name\"[\s\S]*\}", text)
     if match:
         return match.group(0)
     return None
+
+
+def _loads_lenient(raw: str) -> Any:
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        cleaned = re.sub(r",\s*([}\]])", r"\1", raw)
+        return json.loads(cleaned)
 
 
 def _as_list(value: Any) -> list[str]:
@@ -44,7 +56,7 @@ def coerce_tool(data: dict[str, Any] | None, query: str) -> dict[str, Any]:
         "features": _as_list(payload.get("features")),
         "when_to_use": _as_list(payload.get("when_to_use")),
         "when_not_to_use": _as_list(payload.get("when_not_to_use")),
-        "tags": _as_list(payload.get("tags")),
+        "tags": normalize_tags(_as_list(payload.get("tags"))),
         "url": query,
     }
 
@@ -72,6 +84,7 @@ def partial_from_search(query: str, search_hits: list[dict[str, Any]] | None) ->
     docs_url = ""
     titles: list[str] = []
     description = ""
+    what_it_is = ""
     for item in search_hits or []:
         url = str(item.get("url") or "")
         title = str(item.get("title") or "").strip()
@@ -80,6 +93,8 @@ def partial_from_search(query: str, search_hits: list[dict[str, Any]] | None) ->
             titles.append(title)
         if content and not description:
             description = content[:400]
+        if content and len(content) > len(what_it_is):
+            what_it_is = content[:2000]
         lowered = url.lower()
         if "github.com" in lowered and not github_url:
             github_url = url
@@ -91,6 +106,7 @@ def partial_from_search(query: str, search_hits: list[dict[str, Any]] | None) ->
         {
             "name": query,
             "description": description,
+            "what_it_is": what_it_is,
             "homepage": homepage,
             "github_url": github_url,
             "docs_url": docs_url,
@@ -114,7 +130,7 @@ def emit_research_result(
     raw = extract_json_block(final_text or "")
     if raw:
         try:
-            loaded = json.loads(raw)
+            loaded = _loads_lenient(raw)
             if isinstance(loaded, dict):
                 parsed = coerce_tool(loaded, query)
         except json.JSONDecodeError as exc:

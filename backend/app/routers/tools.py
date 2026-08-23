@@ -8,8 +8,11 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
+from sqlalchemy.orm.attributes import flag_modified
+
 from app.database import get_db
 from app import models, schemas
+from app.tags import normalize_tag, normalize_tags
 
 router = APIRouter()
 
@@ -37,7 +40,23 @@ class StashImportResult(BaseModel):
 
 
 def _tool_payload(tool: models.Tool) -> dict:
-    return {field: getattr(tool, field) for field in EXPORTABLE_FIELDS}
+    payload = {field: getattr(tool, field) for field in EXPORTABLE_FIELDS}
+    payload["tags"] = normalize_tags(payload.get("tags") or [])
+    return payload
+
+
+def _persist_normalized_tags(db: Session, tools: list[models.Tool]) -> None:
+    dirty = False
+    for tool in tools:
+        normalized = normalize_tags(tool.tags or [])
+        if list(tool.tags or []) != normalized:
+            tool.tags = normalized
+            flag_modified(tool, "tags")
+            dirty = True
+    if dirty:
+        db.commit()
+        for tool in tools:
+            db.refresh(tool)
 
 
 def _norm_name(name: str | None) -> str:
@@ -113,8 +132,10 @@ def list_tools(
     tools = q.order_by(models.Tool.created_at.desc()).all()
 
     if tag:
-        tools = [t for t in tools if tag.lower() in [tg.lower() for tg in (t.tags or [])]]
+        wanted = normalize_tag(tag)
+        tools = [t for t in tools if wanted in normalize_tags(t.tags or [])]
 
+    _persist_normalized_tags(db, tools)
     return tools
 
 
@@ -203,11 +224,11 @@ def list_categories(db: Session = Depends(get_db)):
 
 @router.get("/tags/all")
 def list_tags(db: Session = Depends(get_db)):
-    tools = db.query(models.Tool.tags).all()
+    tools = db.query(models.Tool).all()
+    _persist_normalized_tags(db, tools)
     all_tags: set[str] = set()
-    for (tags,) in tools:
-        if tags:
-            all_tags.update(tags)
+    for tool in tools:
+        all_tags.update(tool.tags or [])
     return sorted(all_tags)
 
 
@@ -216,6 +237,7 @@ def get_tool(tool_id: int, db: Session = Depends(get_db)):
     tool = db.query(models.Tool).filter(models.Tool.id == tool_id).first()
     if not tool:
         raise HTTPException(status_code=404, detail="Tool not found")
+    _persist_normalized_tags(db, [tool])
     return tool
 
 

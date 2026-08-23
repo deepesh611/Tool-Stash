@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import Literal, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+
+from app.tags import normalize_tags
 
 
 class ToolBase(BaseModel):
@@ -18,6 +20,13 @@ class ToolBase(BaseModel):
     when_not_to_use: list[str] = []
     tags: list[str] = []
     personal_notes: Optional[str] = ""
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def _normalize_tags(cls, value):
+        if value is None:
+            return []
+        return normalize_tags(value)
 
 
 class ToolCreate(ToolBase):
@@ -39,6 +48,13 @@ class ToolUpdate(BaseModel):
     features: Optional[list[str]] = None
     when_to_use: Optional[list[str]] = None
     when_not_to_use: Optional[list[str]] = None
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def _normalize_tags(cls, value):
+        if value is None:
+            return None
+        return normalize_tags(value)
 
 
 class ToolResponse(ToolBase):
