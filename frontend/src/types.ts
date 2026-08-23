@@ -36,6 +36,7 @@ export interface ToolResearch {
 export interface SearchHit {
   title: string
   url: string
+  content?: string
 }
 
 export type ResearchActivity = {
@@ -44,6 +45,7 @@ export type ResearchActivity = {
   query?: string
   url?: string
   title?: string
+  snippet?: string
   results?: SearchHit[]
   message?: string
 }

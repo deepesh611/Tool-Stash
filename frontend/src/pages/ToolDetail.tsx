@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import type { Tool } from '../types'
+import type { Tool, ToolResearch } from '../types'
 import { DuplicateToolError, getTool, deleteTool, updateTool } from '../api/tools'
 import CategoryBadge from '../components/CategoryBadge'
 import ToolForm, { type ToolFormValue } from '../components/ToolForm'
+import StreamingText from '../components/StreamingText'
+import SearchActivityLog, { applyActivity, type ActivityItem } from '../components/SearchActivityLog'
+import { collectResearch } from '../lib/runResearch'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -45,6 +48,10 @@ function LinkRow({ label, url }: { label: string; url?: string }) {
   )
 }
 
+function researchQuery(item: Tool): string {
+  return (item.homepage || item.url || item.name).trim()
+}
+
 export default function ToolDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -59,6 +66,11 @@ export default function ToolDetail() {
   const [saveError, setSaveError] = useState('')
   const [duplicateId, setDuplicateId] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
+  const [view, setView] = useState<'profile' | 'researching' | 'review'>('profile')
+  const [statusMsg, setStatusMsg] = useState('')
+  const [researchText, setResearchText] = useState('')
+  const [activities, setActivities] = useState<ActivityItem[]>([])
+  const [researchDraft, setResearchDraft] = useState<ToolResearch | null>(null)
 
   const toDraft = (item: Tool): ToolFormValue => ({
     name: item.name,
@@ -88,6 +100,81 @@ export default function ToolDetail() {
       .catch(() => navigate('/'))
       .finally(() => setLoading(false))
   }, [id, navigate])
+
+  const handleReResearch = async () => {
+    if (!tool) return
+    if (!confirm('Fetch a fresh profile from the web? Your personal notes will be kept.')) return
+    const q = researchQuery(tool)
+    setView('researching')
+    setStatusMsg('Connecting to AI agent...')
+    setResearchText('')
+    setActivities([])
+    setSaveError('')
+    setDuplicateId(null)
+    setSearchParams({})
+
+    const { draft, text, activities: activityList, error } = await collectResearch(q, (event) => {
+      if (event.type === 'status') setStatusMsg(event.message)
+      else if (event.type === 'activity') setActivities((prev) => applyActivity(prev, event))
+      else if (event.type === 'text') setResearchText(event.content)
+    })
+
+    setResearchText(text)
+    setActivities(activityList)
+    setResearchDraft({ ...draft, url: tool.url || q })
+    setSaveError(error)
+    setView('review')
+  }
+
+  const cancelResearch = () => {
+    setView('profile')
+    setResearchDraft(null)
+    setSaveError('')
+    setDuplicateId(null)
+  }
+
+  const updateResearchDraft = <K extends keyof ToolFormValue>(field: K, value: ToolFormValue[K]) =>
+    setResearchDraft((prev) => prev ? { ...prev, [field]: value } : prev)
+
+  const handleApplyResearch = async () => {
+    if (!tool || !researchDraft) return
+    setSaving(true)
+    setSaveError('')
+    setDuplicateId(null)
+    try {
+      const updated = await updateTool(tool.id, {
+        name: researchDraft.name,
+        description: researchDraft.description,
+        category: researchDraft.category,
+        url: researchDraft.url || tool.url,
+        homepage: researchDraft.homepage,
+        github_url: researchDraft.github_url,
+        docs_url: researchDraft.docs_url,
+        what_it_is: researchDraft.what_it_is,
+        why_it_exists: researchDraft.why_it_exists,
+        features: researchDraft.features,
+        when_to_use: researchDraft.when_to_use,
+        when_not_to_use: researchDraft.when_not_to_use,
+        tags: researchDraft.tags,
+        personal_notes: notes,
+      })
+      setTool(updated)
+      setDraft(toDraft(updated))
+      setNotes(updated.personal_notes ?? '')
+      setNotesChanged(false)
+      setView('profile')
+      setResearchDraft(null)
+    } catch (err) {
+      if (err instanceof DuplicateToolError) {
+        setSaveError(err.message)
+        setDuplicateId(err.id)
+      } else {
+        setSaveError('Failed to apply research.')
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const handleDelete = async () => {
     if (!tool || !confirm(`Remove "${tool.name}" from your stash?`)) return
@@ -177,6 +264,93 @@ export default function ToolDetail() {
 
   if (!tool) return null
 
+  if (view === 'researching') {
+    return (
+      <div className="max-w-2xl mx-auto pt-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-2 h-2 bg-brand-500 rounded-full animate-pulse" />
+          <p className="text-sm text-brand-400">{statusMsg}</p>
+        </div>
+        <SearchActivityLog items={activities} />
+        {researchText && (
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <p className="text-xs text-gray-600 mb-3 uppercase tracking-wider">Research in progress</p>
+            <StreamingText text={researchText} isStreaming />
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  if (view === 'review' && researchDraft) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <button
+          onClick={cancelResearch}
+          className="text-sm text-gray-500 hover:text-white mb-6 flex items-center gap-1 transition-colors"
+        >
+          ← Cancel
+        </button>
+        <h1 className="text-xl font-bold mb-1">Review research</h1>
+        <p className="text-sm text-gray-500 mb-6">
+          {saveError
+            ? 'Research hit a snag. Edit the draft below and apply what we gathered.'
+            : 'Edit any field, then apply it to this profile. Your notes stay as they are.'}
+        </p>
+        <ToolForm value={researchDraft} onChange={updateResearchDraft} />
+        {saveError && (
+          <div className="mt-4 p-3 bg-red-900/30 border border-red-800/50 rounded-lg text-red-400 text-sm">
+            {saveError}
+            {duplicateId != null && (
+              <button
+                type="button"
+                onClick={() => navigate(`/tool/${duplicateId}`)}
+                className="mt-2 block text-brand-400 hover:text-brand-300 underline underline-offset-2"
+              >
+                Open existing tool
+              </button>
+            )}
+          </div>
+        )}
+        <div className="mt-5 flex gap-3">
+          <button
+            onClick={handleApplyResearch}
+            disabled={saving}
+            className="flex-1 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 rounded-xl text-sm font-medium transition-colors"
+          >
+            {saving ? 'Saving...' : 'Apply to profile'}
+          </button>
+          <button
+            onClick={cancelResearch}
+            className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-xl text-sm text-gray-400 transition-colors"
+          >
+            Keep current
+          </button>
+        </div>
+        {activities.length > 0 && (
+          <details className="mt-5">
+            <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-400 select-none">
+              Web search process
+            </summary>
+            <div className="mt-2">
+              <SearchActivityLog items={activities} title={null} />
+            </div>
+          </details>
+        )}
+        {researchText && (
+          <details className="mt-5">
+            <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-400 select-none">
+              View raw research
+            </summary>
+            <div className="mt-2 bg-gray-900/50 border border-gray-800/50 rounded-xl p-4">
+              <StreamingText text={researchText} isStreaming={false} className="text-xs opacity-70" />
+            </div>
+          </details>
+        )}
+      </div>
+    )
+  }
+
   if (editing && draft) {
     return (
       <div className="max-w-2xl mx-auto">
@@ -246,6 +420,13 @@ export default function ToolDetail() {
           <p className="text-gray-400 text-sm leading-relaxed">{tool.description}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={handleReResearch}
+            className="text-xs text-gray-400 hover:text-white border border-gray-800 hover:border-gray-600
+                       px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Re-research
+          </button>
           <button
             onClick={startEdit}
             className="text-xs text-gray-400 hover:text-white border border-gray-800 hover:border-gray-600

@@ -18,8 +18,9 @@ When given a tool name or URL, research:
 - Official links (homepage, GitHub, docs)
 - Tags for categorization
 
-Choose ONE category from:
+Choose a category. Prefer one of:
 Developer Tools | Design | Productivity | AI/ML | Data & Analytics | DevOps & Infrastructure | Communication | Security | Finance | Content Creation | Other
+If none fit, use a short new category (Title Case, 1–4 words).
 
 After your research narrative, you MUST end your response with this exact JSON block (nothing after it):
 

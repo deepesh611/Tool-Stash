@@ -16,6 +16,22 @@ logger = logging.getLogger(__name__)
 _MAX_TOOL_ROUNDS = 8
 
 
+def _message_text(message: dict) -> str:
+    content = message.get("content") or ""
+    if isinstance(content, list):
+        parts: list[str] = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict):
+                text = block.get("text") or block.get("content") or ""
+                if text:
+                    parts.append(str(text))
+        content = "".join(parts)
+    thinking = message.get("thinking") or message.get("reasoning") or ""
+    return str(content or thinking or "")
+
+
 class OllamaProvider(LLMProvider):
     def __init__(self):
         self._base_url = settings.ollama_base_url.rstrip("/")
@@ -53,7 +69,7 @@ class OllamaProvider(LLMProvider):
                     message = data.get("message") or {}
                     messages.append(message)
 
-                    content = message.get("content") or ""
+                    content = _message_text(message)
                     if content:
                         final_text = content
 
@@ -79,6 +95,23 @@ class OllamaProvider(LLMProvider):
                             result, activity = await execute_web_tool(name, args)
                             extra = {k: v for k, v in activity.items() if k != "action"}
                             yield activity_event(activity.get("action") or name, "done", **extra)
+                            if name == "web_search":
+                                for hit in extra.get("results") or []:
+                                    if isinstance(hit, dict) and (hit.get("url") or hit.get("title")):
+                                        live.hits.append({
+                                            "title": str(hit.get("title") or ""),
+                                            "url": str(hit.get("url") or ""),
+                                            "content": str(hit.get("content") or ""),
+                                        })
+                            elif name == "web_fetch":
+                                fetch_url = str(extra.get("url") or "")
+                                fetch_snippet = str(extra.get("snippet") or "")
+                                if fetch_url:
+                                    live.hits.append({
+                                        "title": str(extra.get("title") or ""),
+                                        "url": fetch_url,
+                                        "content": fetch_snippet,
+                                    })
                         except Exception as exc:
                             logger.exception("Web tool execution failed")
                             result = f"Tool error: {exc}"

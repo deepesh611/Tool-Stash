@@ -82,10 +82,12 @@ class LiveResearch:
                 title = page.get("title") or ""
                 content = (page.get("content") or "")[:_PAGE_CHARS]
                 pages.append((target, title, content))
-                yield activity_event("fetch", "done", url=target, title=title)
+                yield activity_event("fetch", "done", url=target, title=title, snippet=content[:400])
             except Exception as exc:
                 logger.exception("Live page fetch failed")
                 yield activity_event("fetch", "error", url=target, message=str(exc))
+
+        self._merge_pages_into_hits(pages)
 
         if not self.hits and not pages:
             yield sse({
@@ -115,3 +117,18 @@ class LiveResearch:
             f"{page_block}\n\n"
             "Write the research narrative and the required JSON block. Do not invent URLs."
         )
+
+    def _merge_pages_into_hits(self, pages: list[tuple[str, str, str]]) -> None:
+        for url, title, content in pages:
+            snippet = (content or "").strip()[:500]
+            matched = False
+            for item in self.hits:
+                if (item.get("url") or "") == url:
+                    if title and not item.get("title"):
+                        item["title"] = title
+                    if snippet and not item.get("content"):
+                        item["content"] = snippet
+                    matched = True
+                    break
+            if not matched:
+                self.hits.append({"title": title or "", "url": url, "content": snippet})

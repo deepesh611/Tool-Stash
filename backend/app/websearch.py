@@ -154,7 +154,11 @@ def _unwrap_ddg_url(href: str) -> str:
 
 def public_hits(results: list[dict[str, str]]) -> list[dict[str, str]]:
     return [
-        {"title": item.get("title") or "", "url": item.get("url") or ""}
+        {
+            "title": item.get("title") or "",
+            "url": item.get("url") or "",
+            "content": (item.get("content") or "")[:280],
+        }
         for item in results
         if item.get("url") or item.get("title")
     ]
@@ -208,7 +212,12 @@ async def execute_web_tool(name: str, args: dict[str, Any]) -> tuple[str, dict[s
         link_text = ""
         if isinstance(links, list) and links:
             link_text = "\nLinks: " + ", ".join(str(item) for item in links[:15])
-        activity = {"action": "fetch", "url": normalize_url(url) if url else url, "title": title}
+        activity = {
+            "action": "fetch",
+            "url": normalize_url(url) if url else url,
+            "title": title,
+            "snippet": content[:400],
+        }
         return f"Title: {title}\n\n{content}{link_text}"[:_MAX_TOOL_RESULT_CHARS], activity
     return f"Unknown tool: {name}", {"action": name or "unknown"}
 
@@ -302,7 +311,16 @@ async def _local_web_search(query: str, max_results: int) -> list[dict[str, str]
         if not url or url in seen:
             continue
         seen.add(url)
-        results.append({"title": title, "url": url, "content": ""})
+        snippet_match = re.search(
+            r'class="result__snippet"[^>]*>(.*?)</(?:a|td)',
+            html_text[match.end() : match.end() + 1200],
+            re.I | re.S,
+        )
+        snippet = ""
+        if snippet_match:
+            snippet = re.sub(r"<[^>]+>", "", snippet_match.group(1))
+            snippet = html_lib.unescape(re.sub(r"\s+", " ", snippet)).strip()
+        results.append({"title": title, "url": url, "content": snippet})
         if len(results) >= max_results:
             break
 

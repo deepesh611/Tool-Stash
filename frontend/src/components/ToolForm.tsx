@@ -1,10 +1,9 @@
+import { useEffect, useState } from 'react'
 import type { ToolResearch } from '../types'
+import { getCategories } from '../api/tools'
+import { DEFAULT_CATEGORIES, mergeCategories } from '../lib/categories'
 
-export const CATEGORIES = [
-  'Developer Tools', 'Design', 'Productivity', 'AI/ML',
-  'Data & Analytics', 'DevOps & Infrastructure', 'Communication',
-  'Security', 'Finance', 'Content Creation', 'Other',
-]
+export const CATEGORIES = DEFAULT_CATEGORIES
 
 export type ToolFormValue = ToolResearch & { personal_notes?: string }
 
@@ -19,10 +18,102 @@ function Field({ children }: { children: React.ReactNode }) {
 const INPUT_CLS = `w-full bg-gray-800/80 border border-gray-700/50 rounded-lg px-3 py-2 text-sm text-white
                    placeholder-gray-600 focus:outline-none focus:border-brand-600 transition-colors`
 
+const NEW_CATEGORY = '__new__'
+
 interface Props {
   value: ToolFormValue
   onChange: <K extends keyof ToolFormValue>(field: K, value: ToolFormValue[K]) => void
   showNotes?: boolean
+}
+
+function CategoryField({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (category: string) => void
+}) {
+  const [fromStash, setFromStash] = useState<string[]>([])
+  const [created, setCreated] = useState<string[]>([])
+  const [adding, setAdding] = useState(false)
+  const [custom, setCustom] = useState('')
+
+  useEffect(() => {
+    getCategories().then(setFromStash).catch(() => {})
+  }, [])
+
+  const options = mergeCategories(DEFAULT_CATEGORIES, fromStash, created, value)
+
+  const commitCustom = () => {
+    const name = custom.trim()
+    if (!name) {
+      setAdding(false)
+      return
+    }
+    setCreated(mergeCategories(created, name))
+    onChange(name)
+    setAdding(false)
+    setCustom('')
+  }
+
+  return (
+    <Field>
+      <Label>Category</Label>
+      {adding ? (
+        <div className="flex gap-2">
+          <input
+            value={custom}
+            onChange={(e) => setCustom(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                commitCustom()
+              }
+              if (e.key === 'Escape') setAdding(false)
+            }}
+            placeholder="New category name"
+            className={INPUT_CLS}
+            autoFocus
+          />
+          <button
+            type="button"
+            onClick={commitCustom}
+            disabled={!custom.trim()}
+            className="px-3 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 rounded-lg text-sm shrink-0"
+          >
+            Add
+          </button>
+          <button
+            type="button"
+            onClick={() => { setAdding(false); setCustom('') }}
+            className="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm text-gray-400 shrink-0"
+          >
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <select
+            value={options.includes(value) ? value : (value || 'Other')}
+            onChange={(e) => {
+              if (e.target.value === NEW_CATEGORY) {
+                setAdding(true)
+                setCustom('')
+                return
+              }
+              onChange(e.target.value)
+            }}
+            className={INPUT_CLS}
+          >
+            {options.map((category) => (
+              <option key={category} value={category}>{category}</option>
+            ))}
+            <option value={NEW_CATEGORY}>+ New category…</option>
+          </select>
+        </div>
+      )}
+    </Field>
+  )
 }
 
 export default function ToolForm({ value, onChange, showNotes = false }: Props) {
@@ -33,16 +124,7 @@ export default function ToolForm({ value, onChange, showNotes = false }: Props) 
           <Label>Name</Label>
           <input value={value.name} onChange={(e) => onChange('name', e.target.value)} className={INPUT_CLS} />
         </Field>
-        <Field>
-          <Label>Category</Label>
-          <select
-            value={value.category}
-            onChange={(e) => onChange('category', e.target.value)}
-            className={INPUT_CLS}
-          >
-            {CATEGORIES.map((category) => <option key={category}>{category}</option>)}
-          </select>
-        </Field>
+        <CategoryField value={value.category} onChange={(category) => onChange('category', category)} />
       </div>
 
       <Field>

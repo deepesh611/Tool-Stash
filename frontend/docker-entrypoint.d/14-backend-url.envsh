@@ -1,6 +1,11 @@
 #!/bin/sh
 # Sourced by nginx (*.envsh + executable). BACKEND_URL is from *inside this
 # container* — not the URL in the browser. Do not use localhost.
+#
+# Pin the backend to an IPv4 address before nginx starts. Nginx's own resolver
+# against Docker DNS (127.0.0.11) often works for one lookup on Docker Desktop
+# for Windows, then fails after the TTL. libc getent stays reliable; a static
+# proxy_pass to an IP does not need DNS again.
 
 _strip_slash() {
   echo "$1" | sed 's#/*$##'
@@ -15,6 +20,27 @@ _is_loopback() {
       ;;
   esac
   return 1
+}
+
+_is_ipv4() {
+  echo "$1" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'
+}
+
+_host_of() {
+  echo "$1" | sed -e 's#^https\?://##' -e 's#/.*##' -e 's#:.*##'
+}
+
+_port_of() {
+  rest=$(echo "$1" | sed -e 's#^https\?://##' -e 's#/.*##')
+  case "$rest" in
+    *:*) echo "$rest" | sed 's#.*:##' ;;
+    *)
+      case "$1" in
+        https://*) echo 443 ;;
+        *) echo 80 ;;
+      esac
+      ;;
+  esac
 }
 
 _gateway_ip() {
@@ -33,28 +59,65 @@ _gateway_ip() {
 }
 
 _host_docker_internal_ip() {
-  getent hosts host.docker.internal 2>/dev/null | awk '{print $1; exit}'
+  getent hosts host.docker.internal 2>/dev/null | awk '$1 ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/ { print $1; exit }'
 }
 
-BACKEND_HOST_PORT="${BACKEND_HOST_PORT:-8001}"
-BACKEND_URL="$(_strip_slash "${BACKEND_URL:-}")"
+_ipv4_for_host() {
+  host="$1"
+  n=0
+  while [ "$n" -lt 30 ]; do
+    ip=$(getent hosts "$host" 2>/dev/null | awk '$1 ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/ { print $1; exit }')
+    if [ -n "$ip" ]; then
+      echo "$ip"
+      return 0
+    fi
+    n=$((n + 1))
+    sleep 1
+  done
+  return 1
+}
 
 _pick_host_gateway() {
   internal_ip="$(_host_docker_internal_ip)"
   gateway_ip="$(_gateway_ip)"
   if [ -n "$internal_ip" ]; then
-    BACKEND_URL="http://${internal_ip}:${BACKEND_HOST_PORT}"
+    echo "$internal_ip"
   elif [ -n "$gateway_ip" ]; then
-    BACKEND_URL="http://${gateway_ip}:${BACKEND_HOST_PORT}"
-  else
-    BACKEND_URL="http://host.docker.internal:${BACKEND_HOST_PORT}"
+    echo "$gateway_ip"
   fi
 }
 
+BACKEND_HOST_PORT="${BACKEND_HOST_PORT:-8001}"
+BACKEND_URL="$(_strip_slash "${BACKEND_URL:-}")"
+
 if [ -z "$BACKEND_URL" ] || _is_loopback "$BACKEND_URL"; then
   echo "Tool Stash frontend: ${BACKEND_URL:-empty} is not usable inside this container; using host gateway."
-  _pick_host_gateway
+  gw="$(_pick_host_gateway)"
+  if [ -n "$gw" ]; then
+    BACKEND_URL="http://${gw}:${BACKEND_HOST_PORT}"
+  else
+    BACKEND_URL="http://host.docker.internal:${BACKEND_HOST_PORT}"
+  fi
 fi
 
+host="$(_host_of "$BACKEND_URL")"
+port="$(_port_of "$BACKEND_URL")"
+
+if ! _is_ipv4 "$host"; then
+  echo "Tool Stash frontend: resolving ${host} to IPv4..."
+  ip="$(_ipv4_for_host "$host")" || ip=""
+  if [ -z "$ip" ]; then
+    echo "Tool Stash frontend: ${host} did not resolve; trying host gateway."
+    ip="$(_pick_host_gateway)"
+    port="$BACKEND_HOST_PORT"
+  fi
+  if [ -z "$ip" ]; then
+    echo "Tool Stash frontend: cannot resolve a backend address." >&2
+    exit 1
+  fi
+  host="$ip"
+fi
+
+BACKEND_URL="http://${host}:${port}"
 export BACKEND_URL
 echo "Tool Stash frontend: proxying /api → ${BACKEND_URL}"
