@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import type { Tool } from '../types'
 import { getTools, deleteTool, getCategories, getAllTags, exportStash, importStash } from '../api/tools'
 import ToolCard from '../components/ToolCard'
+import TagFilter from '../components/TagFilter'
 
 export default function Browse() {
   const [tools, setTools] = useState<Tool[]>([])
@@ -172,23 +173,7 @@ export default function Browse() {
         </div>
       )}
 
-      {/* Tag filters */}
-      {allTags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-6">
-          {allTags.map((tag) => (
-            <button
-              key={tag}
-              onClick={() => setActiveTag(tag === activeTag ? '' : tag)}
-              className={`text-xs px-2.5 py-0.5 rounded-full font-mono border transition-colors
-                ${tag === activeTag
-                  ? 'bg-gray-700 border-gray-600 text-white'
-                  : 'border-gray-800 text-gray-600 hover:border-gray-700 hover:text-gray-400'}`}
-            >
-              #{tag}
-            </button>
-          ))}
-        </div>
-      )}
+      <TagFilter tags={allTags} active={activeTag} onChange={setActiveTag} />
 
       {/* Grid */}
       {loading ? (

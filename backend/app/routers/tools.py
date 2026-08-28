@@ -1,3 +1,4 @@
+from collections import Counter
 from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import urlparse
@@ -245,10 +246,10 @@ def check_duplicate(q: str = Query(...), db: Session = Depends(get_db)):
 def list_tags(db: Session = Depends(get_db)):
     tools = db.query(models.Tool).all()
     _persist_normalized_tags(db, tools)
-    all_tags: set[str] = set()
+    counts: Counter[str] = Counter()
     for tool in tools:
-        all_tags.update(tool.tags or [])
-    return sorted(all_tags)
+        counts.update(tool.tags or [])
+    return [tag for tag, _ in counts.most_common()]
 
 
 @router.get("/{tool_id}", response_model=schemas.ToolResponse)
