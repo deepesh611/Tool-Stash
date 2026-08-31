@@ -1,11 +1,12 @@
 from collections import Counter
 from datetime import datetime, timezone
+import logging
 from typing import Any
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
@@ -17,6 +18,7 @@ from app.tags import normalize_tag, normalize_tags
 from app.websearch import looks_like_url, normalize_url
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 EXPORTABLE_FIELDS = (
     "name",
@@ -39,6 +41,7 @@ EXPORTABLE_FIELDS = (
 class StashImportResult(BaseModel):
     imported: int
     skipped: int
+    invalid: int = 0
 
 
 def _tool_payload(tool: models.Tool) -> dict:
@@ -103,6 +106,35 @@ def find_duplicate(
         if incoming_urls and incoming_urls & existing_urls:
             return tool
     return None
+
+
+def _as_str_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value.strip()] if value.strip() else []
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    return []
+
+
+def _coerce_import_item(item: Any) -> dict[str, Any]:
+    if not isinstance(item, dict):
+        raise ValueError("Tool entry must be an object")
+    payload = dict(item)
+    for field in ("features", "when_to_use", "when_not_to_use", "tags"):
+        payload[field] = _as_str_list(payload.get(field))
+    payload["tags"] = normalize_tags(payload.get("tags"))
+    if payload.get("description") is None:
+        payload["description"] = ""
+    if not str(payload.get("category") or "").strip():
+        payload["category"] = "Other"
+    if not str(payload.get("name") or "").strip():
+        raise ValueError("Tool is missing a name")
+    payload.pop("id", None)
+    payload.pop("created_at", None)
+    payload.pop("updated_at", None)
+    return payload
 
 
 def find_duplicate_for_query(db: Session, query: str) -> models.Tool | None:
@@ -188,6 +220,7 @@ def export_tools(db: Session = Depends(get_db)):
 
 
 @router.post("/import", response_model=StashImportResult)
+@router.post("/import/", response_model=StashImportResult, include_in_schema=False)
 def import_tools(body: Any = Body(...), db: Session = Depends(get_db)):
     if isinstance(body, list):
         raw_tools = body
@@ -198,34 +231,37 @@ def import_tools(body: Any = Body(...), db: Session = Depends(get_db)):
     if not isinstance(raw_tools, list):
         raise HTTPException(status_code=400, detail="Invalid stash file")
 
-    incoming: list[schemas.ToolCreate] = []
-    for item in raw_tools:
-        payload = dict(item) if isinstance(item, dict) else item
-        if isinstance(payload, dict):
-            for field in ("features", "when_to_use", "when_not_to_use", "tags"):
-                if payload.get(field) is None:
-                    payload[field] = []
-        incoming.append(schemas.ToolCreate.model_validate(payload))
-
     imported = 0
     skipped = 0
-    for item in incoming:
+    invalid = 0
+    for item in raw_tools:
+        try:
+            parsed = schemas.ToolCreate.model_validate(_coerce_import_item(item))
+        except (ValidationError, ValueError, TypeError):
+            invalid += 1
+            continue
         existing = find_duplicate(
             db,
-            name=item.name,
-            homepage=item.homepage,
-            url=item.url,
-            github_url=item.github_url,
+            name=parsed.name,
+            homepage=parsed.homepage,
+            url=parsed.url,
+            github_url=parsed.github_url,
         )
         if existing:
             skipped += 1
             continue
-        db.add(models.Tool(**item.model_dump()))
+        db.add(models.Tool(**parsed.model_dump()))
         db.flush()
         imported += 1
 
     db.commit()
-    return StashImportResult(imported=imported, skipped=skipped)
+    logger.info(
+        "Stash import finished: imported=%s skipped=%s invalid=%s",
+        imported,
+        skipped,
+        invalid,
+    )
+    return StashImportResult(imported=imported, skipped=skipped, invalid=invalid)
 
 
 @router.get("/categories/all")

@@ -10,7 +10,9 @@ def normalize_tag(value: str) -> str:
     return text
 
 
-def normalize_tags(values: Iterable[str] | None) -> list[str]:
+def normalize_tags(values: Iterable[str] | str | None) -> list[str]:
+    if isinstance(values, str):
+        values = [values]
     seen: set[str] = set()
     out: list[str] = []
     for raw in values or []:

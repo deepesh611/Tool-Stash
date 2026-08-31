@@ -14,6 +14,7 @@ export default function Browse() {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [ioMessage, setIoMessage] = useState('')
+  const [ioTone, setIoTone] = useState<'ok' | 'warn' | 'error'>('ok')
 
   const fetchTools = useCallback(async () => {
     setLoading(true)
@@ -63,8 +64,10 @@ export default function Browse() {
   const handleExport = async () => {
     try {
       await exportStash()
+      setIoTone('ok')
       setIoMessage('Stash exported.')
     } catch {
+      setIoTone('error')
       setIoMessage('Export failed.')
     }
   }
@@ -73,11 +76,34 @@ export default function Browse() {
     if (!file) return
     try {
       const result = await importStash(file)
-      setIoMessage(`Imported ${result.imported}, skipped ${result.skipped} duplicate${result.skipped === 1 ? '' : 's'}.`)
+      const parts: string[] = []
+      if (result.imported) {
+        parts.push(`Imported ${result.imported} tool${result.imported === 1 ? '' : 's'}`)
+      }
+      if (result.skipped) {
+        parts.push(`skipped ${result.skipped} duplicate${result.skipped === 1 ? '' : 's'}`)
+      }
+      if (result.invalid) {
+        parts.push(`${result.invalid} could not be read`)
+      }
+      if (!result.imported && result.skipped && !result.invalid) {
+        setIoTone('warn')
+        setIoMessage(`Nothing new. All ${result.skipped} tools are already in your stash.`)
+      } else if (!result.imported && !result.skipped && result.invalid) {
+        setIoTone('error')
+        setIoMessage('Import failed. None of the tools in that file could be read.')
+      } else if (!result.imported && !result.skipped && !result.invalid) {
+        setIoTone('warn')
+        setIoMessage('That file has no tools to import.')
+      } else {
+        setIoTone(result.invalid ? 'warn' : 'ok')
+        setIoMessage(`${parts.join(', ')}.`)
+      }
       await fetchTools()
       refreshMeta()
-    } catch {
-      setIoMessage('Import failed. Use a Tool Stash JSON export.')
+    } catch (err) {
+      setIoTone('error')
+      setIoMessage(err instanceof Error ? err.message : 'Import failed. Use a Tool Stash JSON export.')
     }
   }
 
@@ -127,7 +153,17 @@ export default function Browse() {
         </div>
       </div>
       {ioMessage && (
-        <p className="text-xs text-gray-500 -mt-4 mb-4">{ioMessage}</p>
+        <div
+          className={`mb-4 p-3 rounded-lg text-sm ${
+            ioTone === 'error'
+              ? 'bg-red-900/30 border border-red-800/50 text-red-400'
+              : ioTone === 'warn'
+                ? 'bg-amber-900/20 border border-amber-800/40 text-amber-300'
+                : 'bg-gray-800/80 border border-gray-700/50 text-gray-300'
+          }`}
+        >
+          {ioMessage}
+        </div>
       )}
       {loadError && (
         <p className="text-xs text-red-400 -mt-4 mb-4">{loadError}</p>

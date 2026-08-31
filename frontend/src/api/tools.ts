@@ -102,7 +102,7 @@ export async function exportStash(): Promise<void> {
   URL.revokeObjectURL(url)
 }
 
-export async function importStash(file: File): Promise<{ imported: number; skipped: number }> {
+export async function importStash(file: File): Promise<{ imported: number; skipped: number; invalid: number }> {
   const text = await file.text()
   let payload: unknown
   try {
@@ -115,8 +115,19 @@ export async function importStash(file: File): Promise<{ imported: number; skipp
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
-  if (!res.ok) throw new Error('Failed to import stash')
-  return res.json()
+  if (!res.ok) {
+    if (res.status === 413) throw new Error('File is too large to import.')
+    const body = await res.json().catch(() => null)
+    const detail = body?.detail
+    const message = typeof detail === 'string' ? detail : detail?.message
+    throw new Error(message || `Import failed (${res.status})`)
+  }
+  const data = await res.json() as { imported?: number; skipped?: number; invalid?: number }
+  return {
+    imported: data.imported ?? 0,
+    skipped: data.skipped ?? 0,
+    invalid: data.invalid ?? 0,
+  }
 }
 
 export async function getCategories(): Promise<string[]> {
