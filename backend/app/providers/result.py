@@ -3,6 +3,7 @@ import re
 from typing import Any, Iterator
 
 from app.tags import normalize_tags
+from app.websearch import github_repo_url, rank_source_url
 
 
 def sse(payload: dict) -> str:
@@ -96,9 +97,10 @@ def partial_from_search(query: str, search_hits: list[dict[str, Any]] | None) ->
         if content and len(content) > len(what_it_is):
             what_it_is = content[:2000]
         lowered = url.lower()
-        if "github.com" in lowered and not github_url:
-            github_url = url
-        elif ("docs." in lowered or "/docs" in lowered) and not docs_url:
+        if github_repo_url(url):
+            if not github_url or rank_source_url(url, query) < rank_source_url(github_url, query):
+                github_url = github_repo_url(url) or url
+        elif ("docs." in lowered or "/docs" in lowered or "/manual" in lowered) and not docs_url:
             docs_url = url
         elif url and not homepage:
             homepage = url

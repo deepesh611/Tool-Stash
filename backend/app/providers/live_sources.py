@@ -1,3 +1,4 @@
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import date
 import logging
@@ -6,26 +7,20 @@ from urllib.parse import urlparse
 
 from app.providers.result import activity_event, sse
 from app.websearch import (
+    extract_github_repos,
+    github_repo_url,
     looks_like_url,
     normalize_url,
     public_hits,
+    rank_source_url,
     web_fetch,
     web_search,
 )
 
-_MAX_PAGE_FETCHES = 3
+_MAX_PAGE_FETCHES = 4
 _PAGE_CHARS = 3500
 
 logger = logging.getLogger(__name__)
-
-
-def _rank_url(url: str) -> int:
-    lowered = url.lower()
-    if "github.com" in lowered:
-        return 0
-    if "docs." in lowered or "/docs" in lowered:
-        return 1
-    return 2
 
 
 def _search_query(query: str) -> str:
@@ -34,6 +29,27 @@ def _search_query(query: str) -> str:
     parsed = urlparse(normalize_url(query))
     host = (parsed.netloc or "").removeprefix("www.")
     return f"{host} {query} official github documentation"
+
+
+def _queue_url(
+    queue: deque[str],
+    queued: set[str],
+    url: str,
+    query: str,
+    *,
+    front: bool = False,
+) -> None:
+    target = normalize_url(url) if url else ""
+    if not target:
+        return
+    key = target.lower()
+    if key in queued:
+        return
+    queued.add(key)
+    if front and rank_source_url(target, query) <= 2:
+        queue.appendleft(target)
+    else:
+        queue.append(target)
 
 
 @dataclass
@@ -57,24 +73,36 @@ class LiveResearch:
 
         pages: list[tuple[str, str, str]] = []
         fetched: set[str] = set()
+        queue: deque[str] = deque()
+        queued: set[str] = set()
 
-        urls: list[str] = []
         if looks_like_url(self.query):
-            urls.append(normalize_url(self.query))
-        urls.extend(
-            sorted(
-                [str(item.get("url") or "") for item in self.hits if item.get("url")],
-                key=_rank_url,
-            )
+            _queue_url(queue, queued, self.query, self.query)
+        ranked_hits = sorted(
+            [str(hit.get("url") or "") for hit in self.hits if hit.get("url")],
+            key=lambda item: rank_source_url(item, self.query),
         )
-
-        for raw in urls:
-            if len(pages) >= _MAX_PAGE_FETCHES:
-                break
-            target = normalize_url(raw)
-            if not target or target in fetched:
+        search_github: list[str] = []
+        for item in ranked_hits:
+            if github_repo_url(item):
+                search_github.append(item)
                 continue
-            fetched.add(target)
+            _queue_url(queue, queued, item, self.query)
+
+        github_fallback = False
+        while len(pages) < _MAX_PAGE_FETCHES:
+            if not queue:
+                if github_fallback or any(github_repo_url(url) for url, _title, _content in pages):
+                    break
+                github_fallback = True
+                for item in search_github:
+                    _queue_url(queue, queued, item, self.query, front=True)
+                if not queue:
+                    break
+            target = queue.popleft()
+            if target.lower() in fetched:
+                continue
+            fetched.add(target.lower())
             yield sse({"type": "status", "message": f"Fetching {target}..."})
             yield activity_event("fetch", "start", url=target)
             try:
@@ -83,8 +111,19 @@ class LiveResearch:
                 content = (page.get("content") or "")[:_PAGE_CHARS]
                 pages.append((target, title, content))
                 yield activity_event("fetch", "done", url=target, title=title, snippet=content[:400])
+                discovered = extract_github_repos(
+                    content,
+                    title,
+                    " ".join(str(item) for item in (page.get("links") or [])),
+                )
+                for href in page.get("links") or []:
+                    repo = github_repo_url(str(href))
+                    if repo:
+                        discovered.append(repo)
+                for repo in discovered:
+                    _queue_url(queue, queued, repo, self.query, front=True)
             except Exception as exc:
-                logger.exception("Live page fetch failed")
+                logger.warning("Live page fetch failed for %s: %s", target, exc)
                 yield activity_event("fetch", "error", url=target, message=str(exc))
 
         self._merge_pages_into_hits(pages)
@@ -115,7 +154,8 @@ class LiveResearch:
             "Use web search/fetch tools if you still need a more official or newer page.\n\n"
             f"Web search results:\n{search_block}"
             f"{page_block}\n\n"
-            "Write the research narrative and the required JSON block. Do not invent URLs."
+            "Write the research narrative and the required JSON block. Do not invent URLs. "
+            "github_url must be the official repository linked from the homepage, not a fork."
         )
 
     def _merge_pages_into_hits(self, pages: list[tuple[str, str, str]]) -> None:

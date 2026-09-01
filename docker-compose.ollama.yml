@@ -1,0 +1,69 @@
+# All-in-one: Tool Stash + Ollama. First start pulls qwen2.5:3b (~2 GB).
+# Usage: docker compose -f docker-compose.ollama.yml up -d
+#
+# Research uses DuckDuckGo + page fetch (no API key). The Ollama container
+# needs outbound HTTPS to pull the model.
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  ollama-init:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    entrypoint: ["/bin/sh", "-c"]
+    command: ollama pull qwen2.5:3b
+    restart: "no"
+
+  backend:
+    image: nerdygamer611/tool-stash-backend:latest
+    ports:
+      - "8001:8000"
+    environment:
+      - LLM_PROVIDER=ollama
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=qwen2.5:3b
+      - ANTHROPIC_API_KEY=
+      - OPENAI_API_KEY=
+      - DATABASE_URL=sqlite:////data/toolstash.db
+    volumes:
+      - ./data:/data
+    depends_on:
+      ollama-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    image: nerdygamer611/tool-stash-frontend:latest
+    ports:
+      - "3000:80"
+    environment:
+      - BACKEND_URL=http://backend:8000
+      - BACKEND_HOST_PORT=8001
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  ollama:

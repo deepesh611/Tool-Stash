@@ -1,6 +1,7 @@
+import asyncio
 import json
 import logging
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator
 
 import httpx
 
@@ -13,7 +14,37 @@ from app.websearch import WEB_TOOLS, execute_web_tool, normalize_url, parse_tool
 
 logger = logging.getLogger(__name__)
 
-_MAX_TOOL_ROUNDS = 8
+_MAX_TOOL_ROUNDS = 4
+_SYNTHESIZE_PROMPT = (
+    "Stop calling tools. Using only the sources already in this conversation, "
+    "write a short research narrative and then the required JSON block. "
+    "The JSON block is mandatory. Do not invent URLs."
+)
+
+
+async def _chat_json(
+    client: httpx.AsyncClient,
+    url: str,
+    payload: dict[str, Any],
+) -> AsyncGenerator[tuple[str, Any], None]:
+    task = asyncio.create_task(client.post(url, json=payload))
+    try:
+        while True:
+            done, _ = await asyncio.wait({task}, timeout=15)
+            if not done:
+                yield ("status", "Waiting on the model...")
+                continue
+            response = task.result()
+            response.raise_for_status()
+            yield ("data", response.json())
+            return
+    finally:
+        if not task.done():
+            task.cancel()
+            try:
+                await task
+            except (asyncio.CancelledError, Exception):
+                pass
 
 
 def _message_text(message: dict) -> str:
@@ -53,9 +84,11 @@ class OllamaProvider(LLMProvider):
         try:
             async with httpx.AsyncClient(timeout=180.0) as client:
                 for round_num in range(1, _MAX_TOOL_ROUNDS + 1):
-                    response = await client.post(
+                    data = None
+                    async for kind, payload in _chat_json(
+                        client,
                         f"{self._base_url}/api/chat",
-                        json={
+                        {
                             "model": self._model,
                             "messages": messages,
                             "stream": False,
@@ -63,10 +96,12 @@ class OllamaProvider(LLMProvider):
                             "tools": WEB_TOOLS,
                             "options": {"num_ctx": 16384},
                         },
-                    )
-                    response.raise_for_status()
-                    data = response.json()
-                    message = data.get("message") or {}
+                    ):
+                        if kind == "status":
+                            yield sse({"type": "status", "message": payload})
+                        else:
+                            data = payload
+                    message = (data or {}).get("message") or {}
                     messages.append(message)
 
                     content = _message_text(message)
@@ -112,6 +147,12 @@ class OllamaProvider(LLMProvider):
                                         "url": fetch_url,
                                         "content": fetch_snippet,
                                     })
+                        except httpx.HTTPStatusError as exc:
+                            result = f"Tool error: HTTP {exc.response.status_code}"
+                            if name == "web_search":
+                                yield activity_event("search", "error", query=str(args.get("query") or ""), message=str(exc.response.status_code))
+                            elif name == "web_fetch":
+                                yield activity_event("fetch", "error", url=str(args.get("url") or ""), message=str(exc.response.status_code))
                         except Exception as exc:
                             logger.exception("Web tool execution failed")
                             result = f"Tool error: {exc}"
@@ -124,6 +165,30 @@ class OllamaProvider(LLMProvider):
                             "content": result,
                             "tool_name": name,
                         })
+
+                yield sse({"type": "status", "message": "Writing the tool profile..."})
+                data = None
+                async for kind, payload in _chat_json(
+                    client,
+                    f"{self._base_url}/api/chat",
+                    {
+                        "model": self._model,
+                        "messages": [
+                            *messages,
+                            {"role": "user", "content": _SYNTHESIZE_PROMPT},
+                        ],
+                        "stream": False,
+                        "think": False,
+                        "options": {"num_ctx": 16384},
+                    },
+                ):
+                    if kind == "status":
+                        yield sse({"type": "status", "message": payload})
+                    else:
+                        data = payload
+                content = _message_text(((data or {}).get("message") or {}))
+                if content:
+                    final_text = content
         except httpx.HTTPError as e:
             for chunk in emit_research_result(
                 final_text,

@@ -18,6 +18,15 @@ _USER_AGENT = "Mozilla/5.0 (compatible; ToolStash/1.0; +https://localhost)"
 _MAX_FETCH_CHARS = 8000
 _MAX_TOOL_RESULT_CHARS = 8000
 _MAX_DOWNLOAD_BYTES = 1_000_000
+_GITHUB_SKIP = {
+    "topics", "orgs", "search", "settings", "explore", "sponsors",
+    "login", "features", "marketplace", "pricing", "about", "collections",
+    "events", "codespaces", "copilot", "apps",
+}
+_GITHUB_REPO_RE = re.compile(
+    r"https?://(?:www\.)?github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)",
+    re.I,
+)
 
 OLLAMA_WEB_SEARCH_URL = "https://ollama.com/api/web_search"
 OLLAMA_WEB_FETCH_URL = "https://ollama.com/api/web_fetch"
@@ -80,6 +89,85 @@ def normalize_url(url: str) -> str:
     return f"https://{text}"
 
 
+def query_token(query: str) -> str:
+    return "".join(ch for ch in query.lower() if ch.isalnum())
+
+
+def github_repo_url(url: str) -> str | None:
+    if not url:
+        return None
+    parsed = urlparse(normalize_url(url))
+    host = (parsed.netloc or "").lower().removeprefix("www.")
+    if host != "github.com":
+        return None
+    parts = [item for item in parsed.path.split("/") if item]
+    if len(parts) < 2:
+        return None
+    org, repo = parts[0], parts[1].removesuffix(".git")
+    if org.lower() in _GITHUB_SKIP or repo.lower() in {"followers", "following", "stars"}:
+        return None
+    return f"https://github.com/{org}/{repo}"
+
+
+def extract_github_repos(*texts: str) -> list[str]:
+    found: list[str] = []
+    seen: set[str] = set()
+    for text in texts:
+        for match in _GITHUB_REPO_RE.finditer(text or ""):
+            url = github_repo_url(match.group(0))
+            if url and url.lower() not in seen:
+                seen.add(url.lower())
+                found.append(url)
+    return found
+
+
+def rank_source_url(url: str, query: str) -> int:
+    """Lower is better. Prefer official docs/homepage, then the matching GitHub repo."""
+    lowered = url.lower()
+    parsed = urlparse(url)
+    host = parsed.netloc.lower().removeprefix("www.")
+    token = query_token(query)
+    host_key = "".join(ch for ch in host.split(":")[0] if ch.isalnum())
+    path = parsed.path.rstrip("/") or "/"
+    official = bool(token and token in host_key)
+    docs = "docs." in lowered or "/docs" in lowered or "/manual" in lowered
+    repo = github_repo_url(url)
+    repo_match = False
+    if repo:
+        repo_name = "".join(ch for ch in repo.rsplit("/", 1)[-1].lower() if ch.isalnum())
+        repo_match = bool(token and token == repo_name)
+    homepage = official and path in {"", "/"}
+    if official and docs:
+        return 0
+    if homepage:
+        return 1
+    if repo_match:
+        return 2
+    if official:
+        return 3
+    if docs:
+        return 4
+    if repo:
+        return 5
+    return 6
+
+
+def canonical_fetch_url(url: str) -> str:
+    """Prefer GitHub README raw text over the HTML chrome shell."""
+    target = normalize_url(url)
+    repo = github_repo_url(target)
+    if not repo:
+        return target
+    parsed = urlparse(target)
+    parts = [item for item in parsed.path.split("/") if item]
+    org, repo_name = parts[0], parts[1].removesuffix(".git")
+    if len(parts) >= 5 and parts[2] == "blob":
+        return f"https://raw.githubusercontent.com/{org}/{repo_name}/{'/'.join(parts[3:])}"
+    if len(parts) == 2 or (len(parts) >= 3 and parts[2] in {"tree", "blob", "about"}):
+        return f"https://raw.githubusercontent.com/{org}/{repo_name}/HEAD/README.md"
+    return target
+
+
 def _assert_public_http_url(url: str) -> None:
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https"):
@@ -105,9 +193,13 @@ class _HTMLTextParser(HTMLParser):
         self._skip_depth = 0
         self.title_parts: list[str] = []
         self.body_parts: list[str] = []
+        self.links: list[str] = []
         self._in_title = False
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        href = dict(attrs).get("href")
+        if tag in {"a", "link"} and href:
+            self.links.append(href)
         if tag in self._SKIP:
             self._skip_depth += 1
             return
@@ -132,13 +224,21 @@ class _HTMLTextParser(HTMLParser):
         self.body_parts.append(data)
 
 
-def _html_to_text(raw_html: str) -> tuple[str, str]:
+def _html_to_text(raw_html: str, base_url: str = "") -> tuple[str, str, list[str]]:
     parser = _HTMLTextParser()
     parser.feed(raw_html)
     title = re.sub(r"\s+", " ", "".join(parser.title_parts)).strip()
     body = re.sub(r"[ \t]+", " ", "".join(parser.body_parts))
     body = re.sub(r"\n{3,}", "\n\n", body).strip()
-    return title, body[:_MAX_FETCH_CHARS]
+    links: list[str] = []
+    seen: set[str] = set()
+    for href in parser.links:
+        abs_url = urljoin(base_url, html_lib.unescape(href)).split("#", 1)[0]
+        if not abs_url.startswith("http") or abs_url in seen:
+            continue
+        seen.add(abs_url)
+        links.append(abs_url)
+    return title, body[:_MAX_FETCH_CHARS], links[:40]
 
 
 def _unwrap_ddg_url(href: str) -> str:
@@ -188,7 +288,7 @@ async def web_search(query: str, max_results: int = 5) -> list[dict[str, str]]:
 
 
 async def web_fetch(url: str) -> dict[str, str]:
-    target = normalize_url(url)
+    target = canonical_fetch_url(url)
     if settings.ollama_api_key:
         try:
             return await _ollama_web_fetch(target)
@@ -205,7 +305,13 @@ async def execute_web_tool(name: str, args: dict[str, Any]) -> tuple[str, dict[s
         return _format_results(results)[:_MAX_TOOL_RESULT_CHARS], activity
     if name == "web_fetch":
         url = str(args.get("url") or "")
-        page = await web_fetch(url)
+        target = normalize_url(url) if url else url
+        try:
+            page = await web_fetch(url)
+        except httpx.HTTPStatusError as exc:
+            code = exc.response.status_code
+            activity = {"action": "fetch", "url": target, "title": f"HTTP {code}"}
+            return f"Fetch failed: HTTP {code} for {target}. Use a different official URL.", activity
         title = page.get("title") or ""
         content = page.get("content") or ""
         links = page.get("links") or []
@@ -214,7 +320,7 @@ async def execute_web_tool(name: str, args: dict[str, Any]) -> tuple[str, dict[s
             link_text = "\nLinks: " + ", ".join(str(item) for item in links[:15])
         activity = {
             "action": "fetch",
-            "url": normalize_url(url) if url else url,
+            "url": target,
             "title": title,
             "snippet": content[:400],
         }
@@ -346,9 +452,9 @@ async def _local_web_fetch(url: str) -> dict[str, str]:
             if "html" not in content_type and "text" not in content_type:
                 raise ValueError("Unsupported content type")
             raw = response.content[:_MAX_DOWNLOAD_BYTES].decode(response.encoding or "utf-8", errors="replace")
-            title, body = _html_to_text(raw)
+            title, body, links = _html_to_text(raw, current)
             logger.info("Local web fetch completed")
-            return {"title": title, "content": body, "links": []}
+            return {"title": title, "content": body, "links": links}
     raise RuntimeError("Too many redirects")
 
 
