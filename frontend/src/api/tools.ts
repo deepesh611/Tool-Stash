@@ -1,16 +1,22 @@
 import type { Tool, ToolResearch } from '../types'
+import { isDemo } from '../lib/demoMode'
+import { DuplicateToolError } from './errors'
+import {
+  demoCategories,
+  demoDeleteTool,
+  demoExportPayload,
+  demoFindDuplicate,
+  demoGetTool,
+  demoImportPayload,
+  demoListTools,
+  demoSaveTool,
+  demoTags,
+  demoUpdateTool,
+} from '../demo/store'
+
+export { DuplicateToolError }
 
 const BASE = '/api/tools'
-
-export class DuplicateToolError extends Error {
-  id: number
-
-  constructor(message: string, id: number) {
-    super(message)
-    this.name = 'DuplicateToolError'
-    this.id = id
-  }
-}
 
 async function throwApiError(res: Response, fallback: string): Promise<never> {
   const body = await res.json().catch(() => null)
@@ -25,11 +31,24 @@ async function throwApiError(res: Response, fallback: string): Promise<never> {
   throw new Error(typeof detail === 'string' ? detail : fallback)
 }
 
+function downloadJson(filename: string, payload: unknown) {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
 export async function getTools(params?: {
   search?: string
   category?: string
   tag?: string
 }): Promise<Tool[]> {
+  if (isDemo) return demoListTools(params)
   const url = new URL(BASE + '/', window.location.origin)
   if (params?.search) url.searchParams.set('search', params.search)
   if (params?.category) url.searchParams.set('category', params.category)
@@ -40,6 +59,11 @@ export async function getTools(params?: {
 }
 
 export async function getTool(id: number): Promise<Tool> {
+  if (isDemo) {
+    const tool = demoGetTool(id)
+    if (!tool) throw new Error('Tool not found')
+    return tool
+  }
   const res = await fetch(`${BASE}/${id}`)
   if (!res.ok) throw new Error('Tool not found')
   return res.json()
@@ -48,6 +72,7 @@ export async function getTool(id: number): Promise<Tool> {
 export async function findDuplicate(
   query: string,
 ): Promise<{ id: number; name: string } | null> {
+  if (isDemo) return demoFindDuplicate(query)
   const url = new URL(BASE + '/exists', window.location.origin)
   url.searchParams.set('q', query)
   const res = await fetch(url.toString())
@@ -58,6 +83,7 @@ export async function findDuplicate(
 }
 
 export async function saveTool(data: ToolResearch): Promise<Tool> {
+  if (isDemo) return demoSaveTool(data)
   const res = await fetch(BASE + '/', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -71,6 +97,7 @@ export async function updateTool(
   id: number,
   data: Partial<ToolResearch> & { personal_notes?: string }
 ): Promise<Tool> {
+  if (isDemo) return demoUpdateTool(id, data)
   const res = await fetch(`${BASE}/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -81,11 +108,19 @@ export async function updateTool(
 }
 
 export async function deleteTool(id: number): Promise<void> {
+  if (isDemo) {
+    demoDeleteTool(id)
+    return
+  }
   const res = await fetch(`${BASE}/${id}`, { method: 'DELETE' })
   if (!res.ok) throw new Error('Failed to delete tool')
 }
 
 export async function exportStash(): Promise<void> {
+  if (isDemo) {
+    downloadJson('tool-stash-demo.json', demoExportPayload())
+    return
+  }
   const res = await fetch(`${BASE}/export`)
   if (!res.ok) throw new Error('Failed to export stash')
   const blob = await res.blob()
@@ -110,6 +145,7 @@ export async function importStash(file: File): Promise<{ imported: number; skipp
   } catch {
     throw new Error('That file is not valid JSON')
   }
+  if (isDemo) return demoImportPayload(payload)
   const res = await fetch(`${BASE}/import`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -131,12 +167,14 @@ export async function importStash(file: File): Promise<{ imported: number; skipp
 }
 
 export async function getCategories(): Promise<string[]> {
+  if (isDemo) return demoCategories()
   const res = await fetch('/api/tools/categories/all')
   if (!res.ok) return []
   return res.json()
 }
 
 export async function getAllTags(): Promise<string[]> {
+  if (isDemo) return demoTags()
   const res = await fetch('/api/tools/tags/all')
   if (!res.ok) return []
   return res.json()

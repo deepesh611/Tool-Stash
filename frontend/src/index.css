@@ -3,8 +3,18 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    @apply scroll-smooth;
+  }
+
   body {
-    @apply bg-gray-950 text-gray-100 antialiased;
+    @apply bg-ink text-gray-100 antialiased;
+    font-family: Outfit, ui-sans-serif, system-ui, sans-serif;
+    background-color: #07070f;
+  }
+
+  ::selection {
+    @apply bg-brand-600/40 text-white;
   }
 
   ::-webkit-scrollbar {
@@ -14,7 +24,7 @@
     @apply bg-transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-gray-700 rounded-full;
+    @apply bg-white/15 rounded-full;
   }
 }
 
@@ -25,13 +35,70 @@
 
 .cursor-blink::after {
   content: '▋';
-  color: #6366f1;
+  color: #818cf8;
   margin-left: 1px;
   animation: blink 1s step-end infinite;
 }
 
-/* Prose styles for markdown rendering */
+.app-shell {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  background-color: #07070f;
+}
+
+.app-shell::before {
+  content: '';
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(circle 280px at 80px -40px, rgba(99, 102, 241, 0.16), transparent 72%);
+}
+
 @layer components {
+  .glass {
+    @apply bg-[#12121c]/85 backdrop-blur-md border border-white/[0.1] shadow-glass;
+  }
+
+  .glass-strong {
+    @apply bg-[#161622]/90 backdrop-blur-md border border-white/[0.12] shadow-glass;
+  }
+
+  .page-title {
+    font-family: "Instrument Serif", ui-serif, Georgia, serif;
+    @apply text-[1.85rem] leading-tight tracking-tight text-white;
+  }
+
+  .input-glass {
+    @apply w-full bg-[#12121c]/90 border border-white/[0.1] rounded-xl px-4 py-2.5
+           text-sm text-white placeholder-white/30
+           focus:outline-none focus:border-brand-400/50 focus:ring-1 focus:ring-brand-400/20
+           transition-all;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-xl text-sm font-medium
+           text-white bg-gradient-to-r from-brand-600 to-violet-500
+           shadow-[0_0_24px_rgba(99,102,241,0.28)]
+           hover:from-brand-500 hover:to-violet-400 hover:shadow-[0_0_32px_rgba(99,102,241,0.42)]
+           disabled:opacity-40 disabled:shadow-none disabled:hover:from-brand-600
+           transition-all duration-200;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-xl text-sm
+           text-white/60 border border-white/[0.08] bg-[#12121c]/80
+           hover:text-white hover:border-white/20 hover:bg-white/[0.06]
+           transition-all duration-200;
+  }
+
+  .chip {
+    @apply text-xs px-2.5 py-0.5 rounded-full font-mono border border-white/[0.08]
+           bg-white/[0.04] text-white/50;
+  }
+
   .prose-stash h1, .prose-stash h2, .prose-stash h3 {
     @apply text-white font-semibold;
   }
@@ -43,5 +110,5 @@
   .prose-stash strong { @apply text-white font-medium; }
   .prose-stash a { @apply text-brand-400 underline; }
   .prose-stash a:hover { @apply text-brand-300; }
-  .prose-stash code { @apply text-brand-400 bg-gray-800 px-1 py-0.5 rounded text-sm font-mono; }
+  .prose-stash code { @apply text-brand-300 bg-white/10 px-1 py-0.5 rounded text-sm font-mono; }
 }

@@ -6,6 +6,7 @@ import StreamingText from '../components/StreamingText'
 import SearchActivityLog, { applyActivity, type ActivityItem } from '../components/SearchActivityLog'
 import ToolForm, { type ToolFormValue } from '../components/ToolForm'
 import { collectResearch } from '../lib/runResearch'
+import { isDemo } from '../lib/demoMode'
 
 type Phase = 'input' | 'researching' | 'verifying' | 'saving' | 'success'
 
@@ -79,12 +80,14 @@ export default function AddTool() {
   if (phase === 'input') {
     return (
       <div className="max-w-xl mx-auto pt-6">
-        <h1 className="text-xl font-bold mb-1">Add a Tool</h1>
-        <p className="text-sm text-gray-500 mb-6">
-          Type a tool name or paste its URL — the AI agent will research everything about it.
+        <h1 className="page-title mb-1">Add a Tool</h1>
+        <p className="text-sm text-white/40 mb-6">
+          {isDemo
+            ? 'Demo research is simulated and does not call a live model. Saved tools reset on refresh.'
+            : 'Type a tool name or paste its URL — the AI agent will research everything about it.'}
         </p>
         {error && (
-          <div className="mb-4 p-3 bg-red-900/30 border border-red-800/50 rounded-lg text-red-400 text-sm">
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-400/20 rounded-xl text-red-300 text-sm">
             {error}
             {duplicateId != null && (
               <button
@@ -104,15 +107,13 @@ export default function AddTool() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleResearch()}
             placeholder="e.g. Raycast, Turborepo, https://linear.app"
-            className="flex-1 bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm
-                       text-white placeholder-gray-600 focus:outline-none focus:border-brand-600 transition-colors"
+            className="flex-1 input-glass py-3"
             autoFocus
           />
           <button
             onClick={handleResearch}
             disabled={!query.trim()}
-            className="px-5 py-3 bg-brand-600 hover:bg-brand-700 disabled:opacity-40
-                       rounded-xl text-sm font-medium transition-colors shrink-0"
+            className="btn-primary py-3 shrink-0"
           >
             Research →
           </button>
@@ -131,8 +132,8 @@ export default function AddTool() {
         </div>
         <SearchActivityLog items={activities} />
         {researchText && (
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-            <p className="text-xs text-gray-600 mb-3 uppercase tracking-wider">Research in progress</p>
+          <div className="glass rounded-2xl p-5">
+            <p className="text-xs text-white/35 mb-3 uppercase tracking-wider">Research in progress</p>
             <StreamingText text={researchText} isStreaming />
           </div>
         )}
@@ -144,8 +145,8 @@ export default function AddTool() {
   if (phase === 'verifying' && edited) {
     return (
       <div className="max-w-2xl mx-auto pt-6">
-        <h1 className="text-xl font-bold mb-1">Review & Save</h1>
-        <p className="text-sm text-gray-500 mb-6">
+        <h1 className="page-title mb-1">Review & Save</h1>
+        <p className="text-sm text-white/40 mb-6">
           {error
             ? 'Research hit a snag. Edit the draft below and save what we gathered.'
             : 'Edit any field before saving to your stash.'}
@@ -154,7 +155,7 @@ export default function AddTool() {
         <ToolForm value={edited} onChange={update} />
 
         {error && (
-          <div className="mt-4 p-3 bg-red-900/30 border border-red-800/50 rounded-lg text-red-400 text-sm">
+          <div className="mt-4 p-3 bg-red-500/10 border border-red-400/20 rounded-xl text-red-300 text-sm">
             {error}
             {duplicateId != null && (
               <button
@@ -171,13 +172,13 @@ export default function AddTool() {
         <div className="mt-5 flex gap-3">
           <button
             onClick={handleSave}
-            className="flex-1 py-2.5 bg-brand-600 hover:bg-brand-700 rounded-xl text-sm font-medium transition-colors"
+            className="flex-1 btn-primary"
           >
             ✓ Save to Stash
           </button>
           <button
             onClick={() => setPhase('input')}
-            className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-xl text-sm text-gray-400 transition-colors"
+            className="btn-ghost px-5"
           >
             Try Again
           </button>
@@ -185,7 +186,7 @@ export default function AddTool() {
 
         {activities.length > 0 && (
           <details className="mt-5">
-            <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-400 select-none">
+            <summary className="text-xs text-white/35 cursor-pointer hover:text-white/60 select-none">
               Web search process
             </summary>
             <div className="mt-2">
@@ -196,10 +197,10 @@ export default function AddTool() {
 
         {researchText && (
           <details className="mt-5">
-            <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-400 select-none">
+            <summary className="text-xs text-white/35 cursor-pointer hover:text-white/60 select-none">
               View raw research
             </summary>
-            <div className="mt-2 bg-gray-900/50 border border-gray-800/50 rounded-xl p-4">
+            <div className="mt-2 glass rounded-2xl p-4">
               <StreamingText text={researchText} isStreaming={false} className="text-xs opacity-70" />
             </div>
           </details>
@@ -213,7 +214,7 @@ export default function AddTool() {
     return (
       <div className="max-w-xl mx-auto pt-16 text-center">
         <div className="text-4xl mb-4 animate-bounce">💾</div>
-        <p className="text-gray-400 text-sm">Saving to your stash...</p>
+        <p className="text-white/50 text-sm">Saving to your stash...</p>
       </div>
     )
   }
@@ -222,26 +223,26 @@ export default function AddTool() {
   return (
     <div className="max-w-xl mx-auto pt-16 text-center">
       <div className="text-5xl mb-4">🎉</div>
-      <h2 className="text-xl font-bold mb-1">{edited?.name} added!</h2>
-      <p className="text-gray-500 text-sm mb-8">It's now in your stash.</p>
+      <h2 className="page-title mb-1">{edited?.name} added!</h2>
+      <p className="text-white/40 text-sm mb-8">It's now in your stash.</p>
       <div className="flex gap-3 justify-center">
         <button
           onClick={() => { setPhase('input'); setQuery(''); setEdited(null); setActivities([]) }}
-          className="px-5 py-2 bg-gray-800 hover:bg-gray-700 rounded-xl text-sm transition-colors"
+          className="btn-ghost"
         >
           Add Another
         </button>
         {savedId && (
           <button
             onClick={() => navigate(`/tool/${savedId}`)}
-            className="px-5 py-2 bg-gray-800 hover:bg-gray-700 rounded-xl text-sm transition-colors"
+            className="btn-ghost"
           >
             View Profile
           </button>
         )}
         <button
           onClick={() => navigate('/')}
-          className="px-5 py-2 bg-brand-600 hover:bg-brand-700 rounded-xl text-sm transition-colors"
+          className="btn-primary"
         >
           View Stash →
         </button>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { LlmProviderId, LlmSettings } from '../types'
 import { getLlmSettings, updateLlmSettings } from '../api/ai'
+import { isDemo } from '../lib/demoMode'
 
 const PROVIDER_COLORS: Record<string, string> = {
   claude: 'text-orange-400',
@@ -8,8 +9,8 @@ const PROVIDER_COLORS: Record<string, string> = {
   ollama: 'text-blue-400',
 }
 
-const SELECT_CLS = `bg-gray-900 border border-gray-800 rounded-lg px-2 py-1 text-xs font-mono
-                    text-gray-200 focus:outline-none focus:border-brand-600 max-w-[11rem]`
+const SELECT_CLS = `bg-white/[0.05] border border-white/[0.1] rounded-lg px-2 py-1 text-xs font-mono
+                    text-gray-200 focus:outline-none focus:border-brand-400/50 max-w-[11rem] backdrop-blur-md`
 
 export default function LlmPicker() {
   const [settings, setSettings] = useState<LlmSettings | null>(null)
@@ -25,6 +26,14 @@ export default function LlmPicker() {
   )
 
   if (!settings || !active) return null
+
+  if (isDemo) {
+    return (
+      <span className="hidden sm:inline text-[11px] font-mono text-white/40 border border-white/10 rounded-lg px-2 py-1 bg-white/[0.04]">
+        Demo preview
+      </span>
+    )
+  }
 
   const apply = async (provider: LlmProviderId, model: string) => {
     const nextModel = model.trim()

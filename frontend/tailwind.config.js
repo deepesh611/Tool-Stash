@@ -4,6 +4,7 @@ export default {
   theme: {
     extend: {
       colors: {
+        ink: '#07070f',
         brand: {
           50:  '#eef2ff',
           300: '#a5b4fc',
@@ -12,6 +13,13 @@ export default {
           600: '#4f46e5',
           700: '#4338ca',
         },
+      },
+      fontFamily: {
+        sans: ['Outfit', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        serif: ['"Instrument Serif"', 'ui-serif', 'Georgia', 'serif'],
+      },
+      boxShadow: {
+        glass: '0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)',
       },
       typography: {
         invert: {

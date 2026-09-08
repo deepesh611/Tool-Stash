@@ -9,15 +9,14 @@ export const CATEGORIES = DEFAULT_CATEGORIES
 export type ToolFormValue = ToolResearch & { personal_notes?: string }
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <label className="text-xs font-medium text-gray-500 mb-1 block">{children}</label>
+  return <label className="text-xs font-medium text-white/45 mb-1 block">{children}</label>
 }
 
 function Field({ children }: { children: React.ReactNode }) {
   return <div>{children}</div>
 }
 
-const INPUT_CLS = `w-full bg-gray-800/80 border border-gray-700/50 rounded-lg px-3 py-2 text-sm text-white
-                   placeholder-gray-600 focus:outline-none focus:border-brand-600 transition-colors`
+const INPUT_CLS = `input-glass`
 
 const NEW_CATEGORY = '__new__'
 
@@ -80,14 +79,14 @@ function CategoryField({
             type="button"
             onClick={commitCustom}
             disabled={!custom.trim()}
-            className="px-3 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 rounded-lg text-sm shrink-0"
+            className="px-3 py-2 btn-primary shrink-0 !px-3 !py-2"
           >
             Add
           </button>
           <button
             type="button"
             onClick={() => { setAdding(false); setCustom('') }}
-            className="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm text-gray-400 shrink-0"
+            className="btn-ghost !px-3 !py-2 shrink-0"
           >
             Cancel
           </button>
@@ -119,7 +118,7 @@ function CategoryField({
 
 export default function ToolForm({ value, onChange, showNotes = false }: Props) {
   return (
-    <div className="space-y-4 bg-gray-900/60 border border-gray-800 rounded-xl p-6">
+    <div className="space-y-4 glass rounded-2xl p-6">
       <div className="grid grid-cols-2 gap-4">
         <Field>
           <Label>Name</Label>

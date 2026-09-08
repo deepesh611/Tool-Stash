@@ -10,8 +10,8 @@ import { collectResearch } from '../lib/runResearch'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="border-t border-gray-800 pt-5 mt-5">
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3">{title}</h2>
+    <div className="border-t border-white/[0.07] pt-5 mt-5">
+      <h2 className="text-xs font-semibold uppercase tracking-widest text-white/35 mb-3">{title}</h2>
       {children}
     </div>
   )
@@ -255,9 +255,9 @@ export default function ToolDetail() {
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto space-y-4 animate-pulse">
-        <div className="h-8 bg-gray-900 rounded-lg w-1/3" />
-        <div className="h-4 bg-gray-900 rounded-lg w-2/3" />
-        <div className="h-48 bg-gray-900 rounded-xl" />
+        <div className="h-8 glass rounded-lg w-1/3" />
+        <div className="h-4 glass rounded-lg w-2/3" />
+        <div className="h-48 glass rounded-2xl" />
       </div>
     )
   }
@@ -273,8 +273,8 @@ export default function ToolDetail() {
         </div>
         <SearchActivityLog items={activities} />
         {researchText && (
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-            <p className="text-xs text-gray-600 mb-3 uppercase tracking-wider">Research in progress</p>
+          <div className="glass rounded-2xl p-5">
+            <p className="text-xs text-white/35 mb-3 uppercase tracking-wider">Research in progress</p>
             <StreamingText text={researchText} isStreaming />
           </div>
         )}
@@ -287,19 +287,19 @@ export default function ToolDetail() {
       <div className="max-w-2xl mx-auto">
         <button
           onClick={cancelResearch}
-          className="text-sm text-gray-500 hover:text-white mb-6 flex items-center gap-1 transition-colors"
+          className="text-sm text-white/40 hover:text-white mb-6 flex items-center gap-1 transition-colors"
         >
           ← Cancel
         </button>
-        <h1 className="text-xl font-bold mb-1">Review research</h1>
-        <p className="text-sm text-gray-500 mb-6">
+        <h1 className="page-title mb-1">Review research</h1>
+        <p className="text-sm text-white/40 mb-6">
           {saveError
             ? 'Research hit a snag. Edit the draft below and apply what we gathered.'
             : 'Edit any field, then apply it to this profile. Your notes stay as they are.'}
         </p>
         <ToolForm value={researchDraft} onChange={updateResearchDraft} />
         {saveError && (
-          <div className="mt-4 p-3 bg-red-900/30 border border-red-800/50 rounded-lg text-red-400 text-sm">
+          <div className="mt-4 p-3 bg-red-500/10 border border-red-400/20 rounded-xl text-red-300 text-sm">
             {saveError}
             {duplicateId != null && (
               <button
@@ -316,20 +316,20 @@ export default function ToolDetail() {
           <button
             onClick={handleApplyResearch}
             disabled={saving}
-            className="flex-1 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 rounded-xl text-sm font-medium transition-colors"
+            className="flex-1 btn-primary"
           >
             {saving ? 'Saving...' : 'Apply to profile'}
           </button>
           <button
             onClick={cancelResearch}
-            className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-xl text-sm text-gray-400 transition-colors"
+            className="btn-ghost px-5"
           >
             Keep current
           </button>
         </div>
         {activities.length > 0 && (
           <details className="mt-5">
-            <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-400 select-none">
+            <summary className="text-xs text-white/35 cursor-pointer hover:text-white/60 select-none">
               Web search process
             </summary>
             <div className="mt-2">
@@ -339,10 +339,10 @@ export default function ToolDetail() {
         )}
         {researchText && (
           <details className="mt-5">
-            <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-400 select-none">
+            <summary className="text-xs text-white/35 cursor-pointer hover:text-white/60 select-none">
               View raw research
             </summary>
-            <div className="mt-2 bg-gray-900/50 border border-gray-800/50 rounded-xl p-4">
+            <div className="mt-2 glass rounded-2xl p-4">
               <StreamingText text={researchText} isStreaming={false} className="text-xs opacity-70" />
             </div>
           </details>
@@ -356,15 +356,15 @@ export default function ToolDetail() {
       <div className="max-w-2xl mx-auto">
         <button
           onClick={cancelEdit}
-          className="text-sm text-gray-500 hover:text-white mb-6 flex items-center gap-1 transition-colors"
+          className="text-sm text-white/40 hover:text-white mb-6 flex items-center gap-1 transition-colors"
         >
           ← Cancel
         </button>
-        <h1 className="text-xl font-bold mb-1">Edit {tool.name}</h1>
-        <p className="text-sm text-gray-500 mb-6">Update any field and save back to your stash.</p>
+        <h1 className="page-title mb-1">Edit {tool.name}</h1>
+        <p className="text-sm text-white/40 mb-6">Update any field and save back to your stash.</p>
         <ToolForm value={draft} onChange={updateDraft} showNotes />
         {saveError && (
-          <div className="mt-4 p-3 bg-red-900/30 border border-red-800/50 rounded-lg text-red-400 text-sm">
+          <div className="mt-4 p-3 bg-red-500/10 border border-red-400/20 rounded-xl text-red-300 text-sm">
             {saveError}
             {duplicateId != null && (
               <button
@@ -381,13 +381,13 @@ export default function ToolDetail() {
           <button
             onClick={handleSaveEdit}
             disabled={saving}
-            className="flex-1 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 rounded-xl text-sm font-medium transition-colors"
+            className="flex-1 btn-primary"
           >
             {saving ? 'Saving...' : 'Save changes'}
           </button>
           <button
             onClick={cancelEdit}
-            className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-xl text-sm text-gray-400 transition-colors"
+            className="btn-ghost px-5"
           >
             Cancel
           </button>
@@ -405,50 +405,49 @@ export default function ToolDetail() {
       {/* Back */}
       <button
         onClick={() => navigate('/')}
-        className="text-sm text-gray-500 hover:text-white mb-6 flex items-center gap-1 transition-colors"
+        className="text-sm text-white/40 hover:text-white mb-6 flex items-center gap-1 transition-colors"
       >
         ← Back to Stash
       </button>
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-2">
+      <div className="glass rounded-2xl p-6 mb-2">
+      <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap mb-2">
-            <h1 className="text-2xl font-bold text-white">{tool.name}</h1>
+            <h1 className="page-title">{tool.name}</h1>
             <CategoryBadge category={tool.category} />
           </div>
-          <p className="text-gray-400 text-sm leading-relaxed">{tool.description}</p>
+          <p className="text-white/55 text-sm leading-relaxed">{tool.description}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={handleReResearch}
-            className="text-xs text-gray-400 hover:text-white border border-gray-800 hover:border-gray-600
-                       px-3 py-1.5 rounded-lg transition-colors"
+            className="btn-ghost !text-xs !py-1.5 !px-3"
           >
             Re-research
           </button>
           <button
             onClick={startEdit}
-            className="text-xs text-gray-400 hover:text-white border border-gray-800 hover:border-gray-600
-                       px-3 py-1.5 rounded-lg transition-colors"
+            className="btn-ghost !text-xs !py-1.5 !px-3"
           >
             Edit
           </button>
           <button
             onClick={handleDelete}
-            className="text-xs text-gray-600 hover:text-red-400 border border-gray-800 hover:border-red-900
-                       px-3 py-1.5 rounded-lg transition-colors"
+            className="btn-ghost !text-xs !py-1.5 !px-3 hover:!text-red-300 hover:!border-red-400/30"
           >
             Remove
           </button>
         </div>
+      </div>
       </div>
 
       {/* Tags */}
       {tool.tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-4">
           {tool.tags.map((tag) => (
-            <span key={tag} className="text-xs px-2.5 py-0.5 bg-gray-800 text-gray-500 rounded-full font-mono">
+            <span key={tag} className="chip">
               #{tag}
             </span>
           ))}
@@ -508,16 +507,14 @@ export default function ToolDetail() {
           onChange={(e) => { setNotes(e.target.value); setNotesChanged(true) }}
           placeholder="Add your own notes, tips, or reminders about this tool..."
           rows={4}
-          className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-gray-300
-                     placeholder-gray-700 focus:outline-none focus:border-brand-600 resize-none transition-colors"
+          className="input-glass resize-none"
         />
         {notesChanged && (
           <div className="flex justify-end mt-2">
             <button
               onClick={handleSaveNotes}
               disabled={notesSaving}
-              className="text-sm px-4 py-1.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50
-                         rounded-lg transition-colors"
+              className="btn-primary !text-sm !px-4 !py-1.5"
             >
               {notesSaving ? 'Saving...' : 'Save Notes'}
             </button>
@@ -526,7 +523,7 @@ export default function ToolDetail() {
       </Section>
 
       {/* Footer */}
-      <div className="mt-8 pt-5 border-t border-gray-800 text-xs text-gray-600">
+      <div className="mt-8 pt-5 border-t border-white/[0.07] text-xs text-white/30">
         Added to stash on {addedDate}
         {tool.url && <span> · from <span className="font-mono">{tool.url}</span></span>}
       </div>

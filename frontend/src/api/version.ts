@@ -1,6 +1,9 @@
+import { isDemo } from '../lib/demoMode'
+
 export const FRONTEND_VERSION = import.meta.env.VITE_APP_VERSION || 'dev'
 
 export async function fetchBackendVersion(): Promise<string> {
+  if (isDemo) return 'demo'
   const res = await fetch('/api/health')
   if (!res.ok) return 'unknown'
   const data = await res.json().catch(() => null)

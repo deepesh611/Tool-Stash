@@ -1,20 +1,20 @@
 const COLORS: Record<string, string> = {
-  'Developer Tools':          'bg-blue-900/60 text-blue-300 border-blue-800/50',
-  'Design':                   'bg-pink-900/60 text-pink-300 border-pink-800/50',
-  'Productivity':             'bg-green-900/60 text-green-300 border-green-800/50',
-  'AI/ML':                    'bg-purple-900/60 text-purple-300 border-purple-800/50',
-  'Data & Analytics':         'bg-yellow-900/60 text-yellow-300 border-yellow-800/50',
-  'DevOps & Infrastructure':  'bg-orange-900/60 text-orange-300 border-orange-800/50',
-  'Communication':            'bg-teal-900/60 text-teal-300 border-teal-800/50',
-  'Security':                 'bg-red-900/60 text-red-300 border-red-800/50',
-  'Finance':                  'bg-emerald-900/60 text-emerald-300 border-emerald-800/50',
-  'Content Creation':         'bg-rose-900/60 text-rose-300 border-rose-800/50',
+  'Developer Tools':          'bg-blue-500/15 text-blue-200 border-blue-400/25',
+  'Design':                   'bg-pink-500/15 text-pink-200 border-pink-400/25',
+  'Productivity':             'bg-emerald-500/15 text-emerald-200 border-emerald-400/25',
+  'AI/ML':                    'bg-violet-500/15 text-violet-200 border-violet-400/25',
+  'Data & Analytics':         'bg-amber-500/15 text-amber-200 border-amber-400/25',
+  'DevOps & Infrastructure':  'bg-orange-500/15 text-orange-200 border-orange-400/25',
+  'Communication':            'bg-teal-500/15 text-teal-200 border-teal-400/25',
+  'Security':                 'bg-red-500/15 text-red-200 border-red-400/25',
+  'Finance':                  'bg-lime-500/15 text-lime-200 border-lime-400/25',
+  'Content Creation':         'bg-rose-500/15 text-rose-200 border-rose-400/25',
 }
 
 export default function CategoryBadge({ category }: { category: string }) {
-  const cls = COLORS[category] ?? 'bg-gray-800 text-gray-400 border-gray-700/50'
+  const cls = COLORS[category] ?? 'bg-white/10 text-white/60 border-white/10'
   return (
-    <span className={`text-xs px-2 py-0.5 rounded-full font-medium border shrink-0 ${cls}`}>
+    <span className={`text-xs px-2 py-0.5 rounded-full font-medium border backdrop-blur-sm shrink-0 ${cls}`}>
       {category}
     </span>
   )

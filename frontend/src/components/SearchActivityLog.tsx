@@ -53,9 +53,9 @@ export default function SearchActivityLog({
   if (!items.length) return null
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-4">
+    <div className="glass rounded-2xl p-4 mb-4">
       {title && (
-        <p className="text-xs text-gray-600 mb-3 uppercase tracking-wider">{title}</p>
+        <p className="text-xs text-white/35 mb-3 uppercase tracking-wider">{title}</p>
       )}
       <ol className="space-y-3">
         {items.map((item) => (

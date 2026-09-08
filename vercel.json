@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "npm ci --prefix frontend",
+  "buildCommand": "VITE_DEMO=true npm run build --prefix frontend",
+  "outputDirectory": "frontend/dist",
+  "framework": null,
+  "env": {
+    "VITE_DEMO": "true"
+  },
+  "rewrites": [
+    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+  ]
+}

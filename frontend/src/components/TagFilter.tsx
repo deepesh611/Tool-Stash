@@ -44,10 +44,10 @@ export default function TagFilter({
           <button
             key={tag}
             onClick={() => onChange(tag === active ? '' : tag)}
-            className={`text-xs px-2.5 py-0.5 rounded-full font-mono border transition-colors
+            className={`text-xs px-2.5 py-0.5 rounded-full font-mono border transition-all
               ${tag === active
-                ? 'bg-gray-700 border-gray-600 text-white'
-                : 'border-gray-800 text-gray-600 hover:border-gray-700 hover:text-gray-400'}`}
+                ? 'bg-white/15 border-white/25 text-white'
+                : 'border-white/[0.08] text-white/40 hover:border-white/20 hover:text-white/70'}`}
           >
             #{tag}
           </button>
@@ -57,7 +57,7 @@ export default function TagFilter({
         <button
           type="button"
           onClick={() => setOpen((prev) => !prev)}
-          className="mt-1.5 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+          className="mt-1.5 text-xs text-white/40 hover:text-white/70 transition-colors"
         >
           {open ? 'Show less' : `Show all ${tags.length} tags`}
         </button>

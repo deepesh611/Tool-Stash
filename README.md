@@ -177,6 +177,19 @@ For the bundled Ollama stack from source, point `OLLAMA_BASE_URL` at the compose
 
 App: [http://localhost:3000](http://localhost:3000) · API: [http://localhost:8001](http://localhost:8001)
 
+## Vercel demo (no backend)
+
+The same UI, with eight sample tools and in-memory edits. Research and AI Suggest are simulated. A refresh restores the dummy stash. Docker / self-hosted builds are unchanged (`VITE_DEMO` is not set).
+
+Import the GitHub repo on [Vercel](https://vercel.com). Leave the **Root Directory** as the repo root. `vercel.json` already sets `VITE_DEMO=true` and SPA rewrites.
+
+Preview locally:
+
+```bash
+cd frontend
+VITE_DEMO=true npm run dev
+```
+
 ## Environment
 
 | Variable | Default | Notes |
@@ -193,6 +206,7 @@ App: [http://localhost:3000](http://localhost:3000) · API: [http://localhost:80
 | `BACKEND_URL` | `http://backend:8000` | URL the **frontend container** uses to reach the API. Origin only, no trailing slash. `localhost` is wrong here. Separate-container deploys fall back to the host at `BACKEND_HOST_PORT`. |
 | `BACKEND_HOST_PORT` | `8001` | Host port of the backend, used only when the `backend` hostname is not on the frontend's Docker network. |
 | `APP_VERSION` | `dev` locally; git tag or `sha-…` in CI | Build-time image version (not a runtime secret). Baked into both images; shown in the UI footer. Local: `APP_VERSION=$(git describe --tags --always) docker compose up --build` |
+| `VITE_DEMO` | unset | Frontend-only. Set to `true` for the Vercel preview (dummy data, no API). Do not set this on Docker builds. |
 
 Do not bake API keys into images. Pass them as env vars or a local `.env`.
 

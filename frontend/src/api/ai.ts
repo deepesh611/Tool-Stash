@@ -1,4 +1,6 @@
 import type { ResearchEvent, SuggestEvent, LlmSettings, LlmProviderId } from '../types'
+import { isDemo } from '../lib/demoMode'
+import { DEMO_LLM_SETTINGS, demoStreamResearch, demoStreamSuggest } from '../demo/ai'
 
 async function* sseStream(url: string, body: unknown): AsyncGenerator<string> {
   const response = await fetch(url, {
@@ -44,6 +46,10 @@ async function* sseStream(url: string, body: unknown): AsyncGenerator<string> {
 }
 
 export async function* streamResearch(query: string): AsyncGenerator<ResearchEvent> {
+  if (isDemo) {
+    yield* demoStreamResearch(query)
+    return
+  }
   for await (const raw of sseStream('/api/ai/research', { query })) {
     if (raw === '[DONE]') return
     try {
@@ -55,6 +61,10 @@ export async function* streamResearch(query: string): AsyncGenerator<ResearchEve
 }
 
 export async function* streamSuggest(description: string): AsyncGenerator<SuggestEvent> {
+  if (isDemo) {
+    yield* demoStreamSuggest(description)
+    return
+  }
   for await (const raw of sseStream('/api/ai/suggest', { description })) {
     if (raw === '[DONE]') return
     try {
@@ -66,12 +76,14 @@ export async function* streamSuggest(description: string): AsyncGenerator<Sugges
 }
 
 export async function getLlmSettings(): Promise<LlmSettings> {
+  if (isDemo) return DEMO_LLM_SETTINGS
   const res = await fetch('/api/ai/provider')
   if (!res.ok) throw new Error('Failed to load LLM settings')
   return res.json()
 }
 
 export async function updateLlmSettings(provider: LlmProviderId, model: string): Promise<LlmSettings> {
+  if (isDemo) return DEMO_LLM_SETTINGS
   const res = await fetch('/api/ai/provider', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },

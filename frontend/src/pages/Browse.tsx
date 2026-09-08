@@ -114,9 +114,9 @@ export default function Browse() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-xl font-bold text-white">Your Stash</h1>
+          <h1 className="page-title">Your Stash</h1>
           {!loading && (
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-white/40 mt-1">
               {tools.length} tool{tools.length !== 1 ? 's' : ''}
               {hasFilters ? ' matching filters' : ' total'}
             </p>
@@ -126,18 +126,18 @@ export default function Browse() {
           {hasFilters && (
             <button
               onClick={clearFilters}
-              className="text-xs text-gray-500 hover:text-white transition-colors"
+              className="text-xs text-white/40 hover:text-white transition-colors"
             >
               Clear filters ✕
             </button>
           )}
           <button
             onClick={handleExport}
-            className="text-xs px-3 py-1.5 rounded-lg border border-gray-800 text-gray-400 hover:text-white hover:border-gray-600 transition-colors"
+            className="btn-ghost !text-xs !py-1.5 !px-3"
           >
             Export
           </button>
-          <label className="text-xs px-3 py-1.5 rounded-lg border border-gray-800 text-gray-400 hover:text-white hover:border-gray-600 transition-colors cursor-pointer">
+          <label className="btn-ghost !text-xs !py-1.5 !px-3 cursor-pointer">
             Import
             <input
               type="file"
@@ -156,10 +156,10 @@ export default function Browse() {
         <div
           className={`mb-4 p-3 rounded-lg text-sm ${
             ioTone === 'error'
-              ? 'bg-red-900/30 border border-red-800/50 text-red-400'
+              ? 'bg-red-500/10 border border-red-400/20 text-red-300'
               : ioTone === 'warn'
-                ? 'bg-amber-900/20 border border-amber-800/40 text-amber-300'
-                : 'bg-gray-800/80 border border-gray-700/50 text-gray-300'
+                ? 'bg-amber-500/10 border border-amber-400/20 text-amber-200'
+                : 'glass text-white/70'
           }`}
         >
           {ioMessage}
@@ -176,9 +176,7 @@ export default function Browse() {
           placeholder="Search by name or description..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5
-                     text-white placeholder-gray-600 text-sm focus:outline-none focus:border-brand-600
-                     transition-colors"
+          className="input-glass"
         />
       </div>
 
@@ -187,10 +185,10 @@ export default function Browse() {
         <div className="flex flex-wrap gap-1.5 mb-3">
           <button
             onClick={() => setActiveCategory('')}
-            className={`text-xs px-3 py-1 rounded-full border transition-colors
+            className={`text-xs px-3 py-1 rounded-full border backdrop-blur-sm transition-all
               ${!activeCategory
-                ? 'bg-brand-600 border-brand-600 text-white'
-                : 'border-gray-700 text-gray-400 hover:border-gray-600 hover:text-white'}`}
+                ? 'bg-brand-600/90 border-brand-500/80 text-white shadow-[0_0_16px_rgba(99,102,241,0.35)]'
+                : 'border-white/10 text-white/50 hover:border-white/25 hover:text-white'}`}
           >
             All
           </button>
@@ -198,10 +196,10 @@ export default function Browse() {
             <button
               key={cat}
               onClick={() => setActiveCategory(cat === activeCategory ? '' : cat)}
-              className={`text-xs px-3 py-1 rounded-full border transition-colors
+              className={`text-xs px-3 py-1 rounded-full border backdrop-blur-sm transition-all
                 ${cat === activeCategory
-                  ? 'bg-brand-600 border-brand-600 text-white'
-                  : 'border-gray-700 text-gray-400 hover:border-gray-600 hover:text-white'}`}
+                  ? 'bg-brand-600/90 border-brand-500/80 text-white shadow-[0_0_16px_rgba(99,102,241,0.35)]'
+                  : 'border-white/10 text-white/50 hover:border-white/25 hover:text-white'}`}
             >
               {cat}
             </button>
@@ -215,16 +213,16 @@ export default function Browse() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-gray-900/50 rounded-xl h-48 animate-pulse border border-gray-800/50" />
+            <div key={i} className="glass rounded-2xl h-48 animate-pulse" />
           ))}
         </div>
       ) : tools.length === 0 ? (
-        <div className="text-center py-24 text-gray-600">
+        <div className="text-center py-24 text-white/40">
           <p className="text-5xl mb-4">📦</p>
           {hasFilters ? (
             <>
               <p className="text-base">No tools match your filters.</p>
-              <button onClick={clearFilters} className="text-sm mt-2 text-brand-500 hover:underline">
+              <button onClick={clearFilters} className="text-sm mt-2 text-brand-400 hover:underline">
                 Clear filters
               </button>
             </>
@@ -232,7 +230,7 @@ export default function Browse() {
             <>
               <p className="text-base">Your stash is empty.</p>
               <p className="text-sm mt-1">
-                <a href="/add" className="text-brand-500 hover:underline">Add your first tool →</a>
+                <a href="/add" className="text-brand-400 hover:underline">Add your first tool →</a>
               </p>
             </>
           )}
