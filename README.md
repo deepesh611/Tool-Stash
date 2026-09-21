@@ -3,6 +3,7 @@
 Personal catalog of tools you run into, with an AI agent that researches a name or URL and fills in the profile.
 
 Images: 
+
 - [nerdygamer611/tool-stash-backend](https://hub.docker.com/r/nerdygamer611/tool-stash-backend)
 - [nerdygamer611/tool-stash-frontend](https://hub.docker.com/r/nerdygamer611/tool-stash-frontend)
 
@@ -113,6 +114,8 @@ Open [http://localhost:3000](http://localhost:3000).
 - For richer profiles, swap both the `ollama pull` line and `OLLAMA_MODEL` to `qwen2.5:7b` (~4.7 GB).
 - You can switch provider and model later in the UI navbar.
 
+
+
 ## Run from Docker Hub (Ollama on the host)
 
 Use this if Ollama is already installed on the machine or if you plan to use `OpenAI` or `Claude` API Key
@@ -166,6 +169,8 @@ docker compose up -d
 - **Claude / OpenAI:** set `LLM_PROVIDER=claude` or `openai` and the matching API key (see env vars below). You can also switch provider and model in the UI.
 - Stash data is stored in `./data/toolstash.db`. Export / Import on the Browse page copies tools between machines.
 
+
+
 ## Run from source
 
 ```bash
@@ -187,26 +192,31 @@ Preview locally:
 
 ```bash
 cd frontend
-VITE_DEMO=true npm run dev
+VITE_DEMO=true 
+npm run dev
 ```
+
+
 
 ## Environment
 
-| Variable | Default | Notes |
-| --- | --- | --- |
-| `LLM_PROVIDER` | `claude` | `claude`, `openai`, or `ollama`. Bundled compose sets `ollama`. |
-| `ANTHROPIC_API_KEY` | | Required for Claude |
-| `ANTHROPIC_MODEL` | `claude-sonnet-5` | |
-| `OPENAI_API_KEY` | | Required for OpenAI |
-| `OPENAI_MODEL` | `gpt-4o` | |
-| `OLLAMA_BASE_URL` | `http://host.docker.internal:11434` | Use `http://ollama:11434` when Ollama runs in Compose. Use `http://localhost:11434` only if the backend is not in Docker. |
-| `OLLAMA_MODEL` | `llama3.1` | Bundled compose defaults to `qwen2.5:3b` (~2 GB) and pulls it for you. |
-| `OLLAMA_API_KEY` | | Optional. [Ollama cloud web search](https://ollama.com/settings/keys); otherwise DuckDuckGo + page fetch |
-| `DATABASE_URL` | `sqlite:////data/toolstash.db` | |
-| `BACKEND_URL` | `http://backend:8000` | URL the **frontend container** uses to reach the API. Origin only, no trailing slash. `localhost` is wrong here. Separate-container deploys fall back to the host at `BACKEND_HOST_PORT`. |
-| `BACKEND_HOST_PORT` | `8001` | Host port of the backend, used only when the `backend` hostname is not on the frontend's Docker network. |
-| `APP_VERSION` | `dev` locally; git tag or `sha-…` in CI | Build-time image version (not a runtime secret). Baked into both images; shown in the UI footer. Local: `APP_VERSION=$(git describe --tags --always) docker compose up --build` |
-| `VITE_DEMO` | unset | Frontend-only. Set to `true` for the Vercel preview (dummy data, no API). Do not set this on Docker builds. |
+
+| Variable            | Default                                 | Notes                                                                                                                                                                                     |
+| ------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LLM_PROVIDER`      | `claude`                                | `claude`, `openai`, or `ollama`. Bundled compose sets `ollama`.                                                                                                                           |
+| `ANTHROPIC_API_KEY` |                                         | Required for Claude                                                                                                                                                                       |
+| `ANTHROPIC_MODEL`   | `claude-sonnet-5`                       |                                                                                                                                                                                           |
+| `OPENAI_API_KEY`    |                                         | Required for OpenAI                                                                                                                                                                       |
+| `OPENAI_MODEL`      | `gpt-4o`                                |                                                                                                                                                                                           |
+| `OLLAMA_BASE_URL`   | `http://host.docker.internal:11434`     | Use `http://ollama:11434` when Ollama runs in Compose. Use `http://localhost:11434` only if the backend is not in Docker.                                                                 |
+| `OLLAMA_MODEL`      | `llama3.1`                              | Bundled compose defaults to `qwen2.5:3b` (~2 GB) and pulls it for you.                                                                                                                    |
+| `OLLAMA_API_KEY`    |                                         | Optional. [Ollama cloud web search](https://ollama.com/settings/keys); otherwise DuckDuckGo + page fetch                                                                                  |
+| `DATABASE_URL`      | `sqlite:////data/toolstash.db`          |                                                                                                                                                                                           |
+| `BACKEND_URL`       | `http://backend:8000`                   | URL the **frontend container** uses to reach the API. Origin only, no trailing slash. `localhost` is wrong here. Separate-container deploys fall back to the host at `BACKEND_HOST_PORT`. |
+| `BACKEND_HOST_PORT` | `8001`                                  | Host port of the backend, used only when the `backend` hostname is not on the frontend's Docker network.                                                                                  |
+| `APP_VERSION`       | `dev` locally; git tag or `sha-…` in CI | Build-time image version (not a runtime secret). Baked into both images; shown in the UI footer. Local: `APP_VERSION=$(git describe --tags --always) docker compose up --build`           |
+| `VITE_DEMO`         | unset                                   | Frontend-only. Set to `true` for the Vercel preview (dummy data, no API). Do not set this on Docker builds.                                                                               |
+
 
 Do not bake API keys into images. Pass them as env vars or a local `.env`.
 
@@ -216,10 +226,12 @@ Pushes to `main` (and version tags `v*`) build `linux/amd64` + `linux/arm64` ima
 
 Add these repository secrets at **Settings → Secrets and variables → Actions**:
 
-| Secret | Value |
-| --- | --- |
-| `DOCKERHUB_USERNAME` | `nerdygamer611` |
-| `DOCKERHUB_TOKEN` | Docker Hub [access token](https://hub.docker.com/settings/security) with Read & Write |
+
+| Secret               | Value                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------- |
+| `DOCKERHUB_USERNAME` | `nerdygamer611`                                                                       |
+| `DOCKERHUB_TOKEN`    | Docker Hub [access token](https://hub.docker.com/settings/security) with Read & Write |
+
 
 You can also run **Actions → Publish Docker images → Run workflow** to publish without a new commit.
 
@@ -229,4 +241,6 @@ You can also run **Actions → Publish Docker images → Run workflow** to publi
 - Browse, edit, and delete stash items
 - If research errors, keep a draft of whatever was gathered
 - Switch LLM provider and model from the navbar
+- Save named OpenAI-compatible endpoints under Settings and pick them from the navbar
 - JSON export / import for moving a stash between devices
+

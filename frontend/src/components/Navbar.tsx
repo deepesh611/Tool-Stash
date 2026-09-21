@@ -38,6 +38,9 @@ export default function Navbar() {
           <NavLink to="/suggest" className={navCls}>
             AI Suggest
           </NavLink>
+          <NavLink to="/settings" className={navCls}>
+            Settings
+          </NavLink>
         </div>
       </div>
     </nav>

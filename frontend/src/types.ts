@@ -61,7 +61,7 @@ export type SuggestEvent =
   | { type: 'text'; content: string }
   | { type: 'error'; message: string }
 
-export type LlmProviderId = 'claude' | 'openai' | 'ollama'
+export type LlmProviderId = string
 
 export interface LlmProviderOption {
   id: LlmProviderId
@@ -75,4 +75,12 @@ export interface LlmSettings {
   provider: LlmProviderId
   model: string
   providers: LlmProviderOption[]
+}
+
+export interface CustomLlm {
+  id: string
+  name: string
+  base_url: string
+  model: string
+  has_key: boolean
 }

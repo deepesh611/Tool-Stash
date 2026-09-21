@@ -9,6 +9,11 @@ const PROVIDER_COLORS: Record<string, string> = {
   ollama: 'text-blue-400',
 }
 
+function providerColor(id: string) {
+  if (id.startsWith('custom:')) return 'text-violet-300'
+  return PROVIDER_COLORS[id] ?? 'text-gray-300'
+}
+
 const SELECT_CLS = `bg-white/[0.05] border border-white/[0.1] rounded-lg px-2 py-1 text-xs font-mono
                     text-gray-200 focus:outline-none focus:border-brand-400/50 max-w-[11rem] backdrop-blur-md`
 
@@ -17,7 +22,12 @@ export default function LlmPicker() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    getLlmSettings().then(setSettings).catch(() => {})
+    const load = () => {
+      getLlmSettings().then(setSettings).catch(() => {})
+    }
+    load()
+    window.addEventListener('llm-settings-changed', load)
+    return () => window.removeEventListener('llm-settings-changed', load)
   }, [])
 
   const active = useMemo(
@@ -61,7 +71,7 @@ export default function LlmPicker() {
         value={settings.provider}
         disabled={saving}
         onChange={(e) => onProviderChange(e.target.value as LlmProviderId)}
-        className={`${SELECT_CLS} ${PROVIDER_COLORS[settings.provider] ?? 'text-gray-300'}`}
+        className={`${SELECT_CLS} ${providerColor(settings.provider)}`}
         title="LLM provider"
       >
         {settings.providers.map((item) => (

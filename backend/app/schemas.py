@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Optional
 from pydantic import BaseModel, field_validator
 
 from app.tags import normalize_tags
@@ -79,5 +79,26 @@ class SuggestRequest(BaseModel):
 
 
 class LlmSettingsUpdate(BaseModel):
-    provider: Literal["claude", "openai", "ollama"]
+    provider: str
     model: str
+
+
+class CustomLlmCreate(BaseModel):
+    name: str
+    base_url: str
+    model: str
+    api_key: str = ""
+
+
+class CustomLlmUpdate(BaseModel):
+    name: str
+    base_url: str
+    model: str
+    api_key: Optional[str] = None
+
+
+class CustomLlmTest(BaseModel):
+    base_url: str
+    model: str
+    api_key: Optional[str] = None
+    id: Optional[str] = None

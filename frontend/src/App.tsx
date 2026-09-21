@@ -4,6 +4,7 @@ import Browse from './pages/Browse'
 import AddTool from './pages/AddTool'
 import ToolDetail from './pages/ToolDetail'
 import Suggest from './pages/Suggest'
+import Settings from './pages/Settings'
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
           <Route path="add" element={<AddTool />} />
           <Route path="tool/:id" element={<ToolDetail />} />
           <Route path="suggest" element={<Suggest />} />
+          <Route path="settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
