@@ -14,7 +14,35 @@ def activity_event(action: str, phase: str, **fields) -> str:
     return sse({"type": "activity", "action": action, "phase": phase, **fields})
 
 
+def as_text(content: Any) -> str:
+    """Flatten chat content that may be a string or a list of text blocks."""
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for block in content:
+            if isinstance(block, str):
+                if block:
+                    parts.append(block)
+                continue
+            text = getattr(block, "text", None)
+            if text is None and isinstance(block, dict):
+                text = block.get("text") or block.get("content") or ""
+            flattened = as_text(text)
+            if flattened:
+                parts.append(flattened)
+        return "\n".join(parts)
+    text = getattr(content, "text", None)
+    if isinstance(text, str):
+        return text
+    return str(content)
+
+
 def extract_json_block(text: str) -> str | None:
+    if not isinstance(text, str):
+        text = as_text(text)
     if not text:
         return None
     fenced = list(re.finditer(r"```(?:json)?\s*(.*?)\s*```", text, re.DOTALL | re.I))
@@ -124,6 +152,7 @@ def emit_research_result(
     search_hits: list[dict[str, Any]] | None = None,
     error_message: str | None = None,
 ) -> Iterator[str]:
+    final_text = as_text(final_text)
     if final_text:
         yield sse({"type": "text", "content": final_text})
 

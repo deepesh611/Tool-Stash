@@ -4,7 +4,7 @@ from openai import OpenAI
 
 from app.providers.base import LLMProvider, RESEARCH_SYSTEM_PROMPT, SUGGEST_SYSTEM_TEMPLATE
 from app.providers.live_sources import LiveResearch
-from app.providers.result import emit_research_result, sse
+from app.providers.result import as_text, emit_research_result, sse
 
 
 def redact_error(message: str, api_key: str) -> str:
@@ -55,7 +55,7 @@ class CustomProvider(LLMProvider):
                 ],
                 max_tokens=4096,
             )
-            final_text = completion.choices[0].message.content or ""
+            final_text = as_text(completion.choices[0].message.content)
         except Exception as exc:
             for chunk in emit_research_result(
                 "",
@@ -92,7 +92,7 @@ class CustomProvider(LLMProvider):
                 stream=True,
             )
             for chunk in stream:
-                delta = chunk.choices[0].delta.content
+                delta = as_text(chunk.choices[0].delta.content)
                 if delta:
                     yield sse({"type": "text", "content": delta})
         except Exception as exc:
