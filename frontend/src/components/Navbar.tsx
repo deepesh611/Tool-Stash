@@ -9,11 +9,11 @@ const navCls = ({ isActive }: { isActive: boolean }) =>
 
 export default function Navbar() {
   return (
-    <nav className="sticky top-0 z-10 border-b border-white/[0.07] bg-[#07070f]/90 backdrop-blur-md">
-      <div className="container mx-auto max-w-6xl px-4 h-14 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3 min-w-0">
+    <nav className="nav-bar">
+      <div className="nav-row container mx-auto max-w-6xl px-4 py-2 min-h-14">
+        <div className="flex items-center gap-3 shrink-0">
           <NavLink to="/" className="font-semibold text-base text-white flex items-center gap-2.5 shrink-0">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-brand-400/90 to-violet-600 shadow-[0_0_16px_rgba(99,102,241,0.45)] text-sm">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-brand-400/90 to-rose-700 shadow-[0_0_16px_rgba(214,150,72,0.45)] text-sm">
               🗃
             </span>
             <span className="tracking-tight">Tool Stash</span>
@@ -21,7 +21,7 @@ export default function Navbar() {
           <LlmPicker />
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="nav-links">
           <NavLink to="/" end className={navCls}>
             Browse
           </NavLink>
@@ -29,7 +29,7 @@ export default function Navbar() {
             to="/add"
             className={({ isActive }) =>
               isActive
-                ? 'px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-violet-500 shadow-[0_0_18px_rgba(99,102,241,0.35)]'
+                ? 'px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-rose-600 shadow-[0_0_18px_rgba(186,78,92,0.35)]'
                 : `${navCls({ isActive: false })}`
             }
           >

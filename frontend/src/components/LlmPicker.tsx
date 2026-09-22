@@ -10,12 +10,12 @@ const PROVIDER_COLORS: Record<string, string> = {
 }
 
 function providerColor(id: string) {
-  if (id.startsWith('custom:')) return 'text-violet-300'
+  if (id.startsWith('custom:')) return 'text-rose-300'
   return PROVIDER_COLORS[id] ?? 'text-gray-300'
 }
 
 const SELECT_CLS = `bg-white/[0.05] border border-white/[0.1] rounded-lg px-2 py-1 text-xs font-mono
-                    text-gray-200 focus:outline-none focus:border-brand-400/50 max-w-[11rem] backdrop-blur-md`
+                    text-gray-200 focus:outline-none focus:border-brand-400/50 max-w-[7.5rem] sm:max-w-[11rem] backdrop-blur-md`
 
 export default function LlmPicker() {
   const [settings, setSettings] = useState<LlmSettings | null>(null)
@@ -101,7 +101,7 @@ export default function LlmPicker() {
             e.currentTarget.blur()
           }
         }}
-        className={`${SELECT_CLS} w-[10.5rem]`}
+        className={`${SELECT_CLS} w-[6.5rem] sm:w-[10.5rem]`}
         title="Model name"
         spellCheck={false}
       />

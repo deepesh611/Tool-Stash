@@ -12,7 +12,8 @@ export default function ToolCard({ tool, onDelete }: Props) {
 
   return (
     <div
-      className="glass rounded-2xl p-5 hover:border-white/20 hover:bg-white/[0.07] hover:-translate-y-0.5
+      className="glass rounded-2xl p-5 hover:border-white/30 hover:-translate-y-0.5
+                 hover:shadow-[0_22px_44px_rgba(12,16,32,0.32)]
                  transition-all duration-300 cursor-pointer group flex flex-col gap-3"
       onClick={() => navigate(`/tool/${tool.id}`)}
     >

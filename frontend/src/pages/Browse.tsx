@@ -112,7 +112,7 @@ export default function Browse() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 gap-4">
+      <div className="flex flex-wrap items-center justify-between mb-6 gap-4">
         <div>
           <h1 className="page-title">Your Stash</h1>
           {!loading && (
@@ -187,7 +187,7 @@ export default function Browse() {
             onClick={() => setActiveCategory('')}
             className={`text-xs px-3 py-1 rounded-full border backdrop-blur-sm transition-all
               ${!activeCategory
-                ? 'bg-brand-600/90 border-brand-500/80 text-white shadow-[0_0_16px_rgba(99,102,241,0.35)]'
+                ? 'bg-brand-600/90 border-brand-500/80 text-white shadow-[0_0_16px_rgba(196,132,58,0.35)]'
                 : 'border-white/10 text-white/50 hover:border-white/25 hover:text-white'}`}
           >
             All
@@ -198,7 +198,7 @@ export default function Browse() {
               onClick={() => setActiveCategory(cat === activeCategory ? '' : cat)}
               className={`text-xs px-3 py-1 rounded-full border backdrop-blur-sm transition-all
                 ${cat === activeCategory
-                  ? 'bg-brand-600/90 border-brand-500/80 text-white shadow-[0_0_16px_rgba(99,102,241,0.35)]'
+                  ? 'bg-brand-600/90 border-brand-500/80 text-white shadow-[0_0_16px_rgba(196,132,58,0.35)]'
                   : 'border-white/10 text-white/50 hover:border-white/25 hover:text-white'}`}
             >
               {cat}

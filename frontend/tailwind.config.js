@@ -4,14 +4,14 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: '#07070f',
+        ink: '#222a3c',
         brand: {
-          50:  '#eef2ff',
-          300: '#a5b4fc',
-          400: '#818cf8',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
+          50:  '#fbf6ee',
+          300: '#f0d0a0',
+          400: '#e0b15a',
+          500: '#c8893a',
+          600: '#a86a30',
+          700: '#8c5428',
         },
       },
       fontFamily: {
@@ -19,16 +19,16 @@ export default {
         serif: ['"Instrument Serif"', 'ui-serif', 'Georgia', 'serif'],
       },
       boxShadow: {
-        glass: '0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)',
+        glass: '0 18px 40px rgba(12, 16, 32, 0.28), inset 0 1px 0 rgba(255,255,255,0.16)',
       },
       typography: {
         invert: {
           css: {
             '--tw-prose-body': '#d1d5db',
             '--tw-prose-headings': '#f9fafb',
-            '--tw-prose-links': '#818cf8',
+            '--tw-prose-links': '#e0b15a',
             '--tw-prose-bold': '#f9fafb',
-            '--tw-prose-code': '#a5b4fc',
+            '--tw-prose-code': '#f0d0a0',
             '--tw-prose-bullets': '#6b7280',
           },
         },
