@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Check, KeyRound, Pencil, Plug, PlugZap, Trash2 } from 'lucide-react'
 import type { CustomLlm } from '../types'
 import {
   createCustomLlm,
@@ -53,9 +54,9 @@ export default function Settings() {
 
   if (isDemo) {
     return (
-      <div className="max-w-2xl mx-auto pt-6">
-        <h1 className="page-title mb-1">Settings</h1>
-        <p className="text-sm text-white/40">
+      <div className="max-w-2xl mx-auto">
+        <h1 className="page-title">Settings</h1>
+        <p className="lede mt-4">
           Custom LLM endpoints need the self-hosted app. This preview does not call a model.
         </p>
       </div>
@@ -145,35 +146,39 @@ export default function Settings() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto pt-6">
-      <h1 className="page-title mb-1">Settings</h1>
-      <p className="text-sm text-white/40 mb-6">
+    <div className="max-w-3xl mx-auto">
+      <h1 className="page-title">Settings</h1>
+      <p className="lede mt-4 mb-10 max-w-xl">
         Add OpenAI-compatible endpoints and name them. They show up in the navbar next to Claude, OpenAI, and Ollama.
       </p>
 
       {error && (
-        <div className="p-3 bg-red-500/10 border border-red-400/20 rounded-xl text-red-300 text-sm mb-4">
+        <div role="alert" className="px-5 py-4 bg-red-500/[0.08] border border-red-400/20 rounded-xl text-red-200 text-body mb-6 animate-fade-rise">
           {error}
         </div>
       )}
       {notice && (
-        <div className="p-3 bg-emerald-500/10 border border-emerald-400/20 rounded-xl text-emerald-300 text-sm mb-4">
-          {notice}
+        <div role="status" className="flex items-start gap-2.5 px-5 py-4 bg-emerald-500/[0.08] border border-emerald-400/20 rounded-xl text-emerald-200 text-body mb-6 animate-fade-rise">
+          <Check className="h-4 w-4 mt-0.5 shrink-0" aria-hidden="true" />
+          <span>{notice}</span>
         </div>
       )}
 
       <form
-        className="glass rounded-2xl p-5 mb-6 space-y-3"
+        className="glass rounded-2xl p-7 sm:p-9 mb-10 space-y-6"
         onSubmit={(e) => {
           e.preventDefault()
           void save()
         }}
       >
-        <h2 className="text-sm font-medium text-white">
-          {editing ? 'Edit endpoint' : 'New endpoint'}
-        </h2>
+        <div className="flex items-center gap-2.5 pb-1">
+          <Plug className="h-4 w-4 text-brand-400/80" aria-hidden="true" />
+          <h2 className="section-title">
+            {editing ? 'Edit endpoint' : 'New endpoint'}
+          </h2>
+        </div>
         <label className="block">
-          <span className="block text-xs text-white/40 mb-1">Name</span>
+          <span className="field-label">Name</span>
           <input
             value={draft.name}
             onChange={(e) => setDraft({ ...draft, name: e.target.value })}
@@ -183,54 +188,58 @@ export default function Settings() {
           />
         </label>
         <label className="block">
-          <span className="block text-xs text-white/40 mb-1">Base URL</span>
+          <span className="field-label">Base URL</span>
           <input
             value={draft.baseUrl}
             onChange={(e) => setDraft({ ...draft, baseUrl: e.target.value })}
             placeholder="https://api.example.com/v1"
-            className="input-glass font-mono text-xs"
+            className="input-glass font-mono text-label"
             spellCheck={false}
             required
           />
         </label>
         <label className="block">
-          <span className="block text-xs text-white/40 mb-1">API key</span>
+          <span className="field-label">API key</span>
           <input
             type="password"
             value={draft.apiKey}
             onChange={(e) => setDraft({ ...draft, apiKey: e.target.value, clearKey: false })}
             placeholder={editing && draft.hasKey ? 'Saved — leave blank to keep' : 'Optional'}
-            className="input-glass font-mono text-xs"
+            className="input-glass font-mono text-label"
             autoComplete="off"
             spellCheck={false}
           />
         </label>
         {editing && draft.hasKey && (
-          <label className="flex items-center gap-2 text-xs text-white/50">
+          <label className="flex items-center gap-2.5 text-label text-white/60 cursor-pointer w-fit">
             <input
               type="checkbox"
               checked={draft.clearKey}
               onChange={(e) => setDraft({ ...draft, clearKey: e.target.checked, apiKey: '' })}
+              className="h-4 w-4 rounded border-white/20 bg-white/[0.06] text-brand-500
+                         accent-brand-500 focus-ring cursor-pointer"
             />
+            <KeyRound className="h-3.5 w-3.5 text-white/35" aria-hidden="true" />
             Remove saved key
           </label>
         )}
         <label className="block">
-          <span className="block text-xs text-white/40 mb-1">Model</span>
+          <span className="field-label">Model</span>
           <input
             value={draft.model}
             onChange={(e) => setDraft({ ...draft, model: e.target.value })}
             placeholder="llama-3.3-70b-versatile"
-            className="input-glass font-mono text-xs"
+            className="input-glass font-mono text-label"
             spellCheck={false}
             required
           />
         </label>
-        <div className="flex items-center gap-2 pt-1">
+        <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-white/[0.06]">
           <button type="submit" disabled={saving || testing} className="btn-primary">
             {saving ? 'Saving...' : editing ? 'Save changes' : 'Add endpoint'}
           </button>
           <button type="button" disabled={saving || testing} onClick={() => void test()} className="btn-ghost">
+            <PlugZap className="h-4 w-4" aria-hidden="true" />
             {testing ? 'Testing...' : 'Test'}
           </button>
           {editing && (
@@ -246,30 +255,52 @@ export default function Settings() {
         </div>
       </form>
 
-      <div className="space-y-2">
-        {loading && <p className="text-sm text-white/40">Loading endpoints...</p>}
+      <h2 className="section-label mb-5">Saved endpoints</h2>
+      <div className="space-y-3">
+        {loading && (
+          <div className="glass rounded-xl px-6 py-5 space-y-2.5">
+            <div className="skeleton h-4 w-32" />
+            <div className="skeleton h-3 w-56" />
+            <div className="skeleton h-3 w-40" />
+          </div>
+        )}
         {!loading && endpoints.length === 0 && (
-          <p className="text-sm text-white/40">No custom endpoints yet.</p>
+          <div className="glass-sunken rounded-xl px-6 py-10 text-center">
+            <Plug className="h-6 w-6 mx-auto mb-3 text-white/25" aria-hidden="true" />
+            <p className="text-body text-white/45">No custom endpoints yet.</p>
+          </div>
         )}
         {endpoints.map((endpoint) => (
-          <div key={endpoint.id} className="glass rounded-xl px-4 py-3 flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-sm text-white">{endpoint.name}</p>
-              <p className="text-xs font-mono text-white/40 truncate">{endpoint.base_url}</p>
-              <p className="text-xs text-white/50 mt-1">
-                {endpoint.model}
-                <span className="text-white/30"> · {endpoint.has_key ? 'key saved' : 'no key'}</span>
+          <div
+            key={endpoint.id}
+            className="glass rounded-xl px-6 py-5 flex flex-wrap items-start justify-between gap-4
+                       hover:border-white/[0.14] transition-colors duration-base ease-smooth"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="text-body font-medium text-white">{endpoint.name}</p>
+              <p className="text-label font-mono text-white/45 truncate mt-1">{endpoint.base_url}</p>
+              <p className="text-label text-white/55 mt-2 flex flex-wrap items-center gap-2">
+                <span className="font-mono">{endpoint.model}</span>
+                <span
+                  className={`chip ${endpoint.has_key
+                    ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-200/80'
+                    : ''}`}
+                >
+                  {endpoint.has_key ? 'key saved' : 'no key'}
+                </span>
               </p>
             </div>
-            <div className="flex items-center gap-1 shrink-0">
-              <button type="button" onClick={() => startEdit(endpoint)} className="btn-ghost px-3 py-1.5">
+            <div className="flex items-center gap-2 shrink-0">
+              <button type="button" onClick={() => startEdit(endpoint)} className="btn-ghost btn-sm">
+                <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                 Edit
               </button>
               <button
                 type="button"
                 onClick={() => void remove(endpoint)}
-                className="btn-ghost px-3 py-1.5 text-red-300 hover:text-red-200"
+                className="btn-danger btn-sm"
               >
+                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                 Delete
               </button>
             </div>

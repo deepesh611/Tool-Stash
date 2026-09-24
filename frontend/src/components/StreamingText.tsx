@@ -6,7 +6,9 @@ interface Props {
 
 export default function StreamingText({ text, isStreaming, className = '' }: Props) {
   return (
-    <div className={`text-sm text-gray-300 whitespace-pre-wrap font-mono leading-relaxed ${className}`}>
+    <div
+      className={`text-label text-white/65 whitespace-pre-wrap font-mono leading-[1.75] ${className}`}
+    >
       {text}
       {isStreaming && <span className="cursor-blink" />}
     </div>

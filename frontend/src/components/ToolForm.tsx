@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Check, X } from 'lucide-react'
 import type { ToolResearch } from '../types'
 import { getCategories } from '../api/tools'
 import { DEFAULT_CATEGORIES, mergeCategories } from '../lib/categories'
@@ -9,11 +10,21 @@ export const CATEGORIES = DEFAULT_CATEGORIES
 export type ToolFormValue = ToolResearch & { personal_notes?: string }
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <label className="text-xs font-medium text-white/45 mb-1 block">{children}</label>
+  return <label className="field-label">{children}</label>
 }
 
 function Field({ children }: { children: React.ReactNode }) {
   return <div>{children}</div>
+}
+
+function Fieldset({ legend, children }: { legend: string; children: React.ReactNode }) {
+  return (
+    <fieldset className="border-t border-white/[0.06] pt-7 first:border-0 first:pt-0">
+      <legend className="sr-only">{legend}</legend>
+      <p className="section-label mb-5" aria-hidden="true">{legend}</p>
+      <div className="space-y-5">{children}</div>
+    </fieldset>
+  )
 }
 
 const INPUT_CLS = `input-glass`
@@ -79,16 +90,19 @@ function CategoryField({
             type="button"
             onClick={commitCustom}
             disabled={!custom.trim()}
-            className="px-3 py-2 btn-primary shrink-0 !px-3 !py-2"
+            className="btn-primary btn-sm shrink-0"
+            aria-label="Add category"
           >
+            <Check className="h-3.5 w-3.5" aria-hidden="true" />
             Add
           </button>
           <button
             type="button"
             onClick={() => { setAdding(false); setCustom('') }}
-            className="btn-ghost !px-3 !py-2 shrink-0"
+            className="btn-ghost btn-sm shrink-0"
+            aria-label="Cancel new category"
           >
-            Cancel
+            <X className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
         </div>
       ) : (
@@ -103,7 +117,7 @@ function CategoryField({
               }
               onChange(e.target.value)
             }}
-            className={INPUT_CLS}
+            className="select-glass"
           >
             {options.map((category) => (
               <option key={category} value={category}>{category}</option>
@@ -118,111 +132,121 @@ function CategoryField({
 
 export default function ToolForm({ value, onChange, showNotes = false }: Props) {
   return (
-    <div className="space-y-4 glass rounded-2xl p-6">
-      <div className="grid grid-cols-2 gap-4">
+    <div className="glass rounded-2xl p-7 sm:p-9 space-y-8">
+      <Fieldset legend="Identity">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <Field>
+            <Label>Name</Label>
+            <input value={value.name} onChange={(e) => onChange('name', e.target.value)} className={INPUT_CLS} />
+          </Field>
+          <CategoryField value={value.category} onChange={(category) => onChange('category', category)} />
+        </div>
+
         <Field>
-          <Label>Name</Label>
-          <input value={value.name} onChange={(e) => onChange('name', e.target.value)} className={INPUT_CLS} />
-        </Field>
-        <CategoryField value={value.category} onChange={(category) => onChange('category', category)} />
-      </div>
-
-      <Field>
-        <Label>Description</Label>
-        <textarea
-          value={value.description}
-          onChange={(e) => onChange('description', e.target.value)}
-          rows={2}
-          className={`${INPUT_CLS} resize-none`}
-        />
-      </Field>
-
-      <div className="grid grid-cols-3 gap-3">
-        <Field>
-          <Label>Homepage</Label>
-          <input value={value.homepage ?? ''} onChange={(e) => onChange('homepage', e.target.value)} className={INPUT_CLS} placeholder="https://..." />
-        </Field>
-        <Field>
-          <Label>GitHub</Label>
-          <input value={value.github_url ?? ''} onChange={(e) => onChange('github_url', e.target.value)} className={INPUT_CLS} placeholder="https://github.com/..." />
-        </Field>
-        <Field>
-          <Label>Docs</Label>
-          <input value={value.docs_url ?? ''} onChange={(e) => onChange('docs_url', e.target.value)} className={INPUT_CLS} placeholder="https://docs..." />
-        </Field>
-      </div>
-
-      <Field>
-        <Label>What It Is</Label>
-        <textarea
-          value={value.what_it_is ?? ''}
-          onChange={(e) => onChange('what_it_is', e.target.value)}
-          rows={3}
-          className={`${INPUT_CLS} resize-none`}
-        />
-      </Field>
-
-      <Field>
-        <Label>Why It Exists</Label>
-        <textarea
-          value={value.why_it_exists ?? ''}
-          onChange={(e) => onChange('why_it_exists', e.target.value)}
-          rows={3}
-          className={`${INPUT_CLS} resize-none`}
-        />
-      </Field>
-
-      <Field>
-        <Label>Key Features (one per line)</Label>
-        <textarea
-          value={value.features.join('\n')}
-          onChange={(e) => onChange('features', e.target.value.split('\n'))}
-          rows={4}
-          className={`${INPUT_CLS} resize-none font-mono`}
-        />
-      </Field>
-
-      <div className="grid grid-cols-2 gap-4">
-        <Field>
-          <Label>When to Use (one per line)</Label>
+          <Label>Description</Label>
           <textarea
-            value={value.when_to_use.join('\n')}
-            onChange={(e) => onChange('when_to_use', e.target.value.split('\n'))}
-            rows={4}
-            className={`${INPUT_CLS} resize-none font-mono`}
+            value={value.description}
+            onChange={(e) => onChange('description', e.target.value)}
+            rows={2}
+            className={`${INPUT_CLS} resize-none`}
           />
         </Field>
-        <Field>
-          <Label>When Not to Use (one per line)</Label>
-          <textarea
-            value={value.when_not_to_use.join('\n')}
-            onChange={(e) => onChange('when_not_to_use', e.target.value.split('\n'))}
-            rows={4}
-            className={`${INPUT_CLS} resize-none font-mono`}
-          />
-        </Field>
-      </div>
+      </Fieldset>
 
-      <Field>
-        <Label>Tags (comma-separated, kebab-case)</Label>
-        <input
-          value={value.tags.join(', ')}
-          onChange={(e) => onChange('tags', normalizeTags(e.target.value.split(',')))}
-          className={`${INPUT_CLS} font-mono`}
-          placeholder="open-source, cli, docker"
-        />
-      </Field>
+      <Fieldset legend="Links">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Field>
+            <Label>Homepage</Label>
+            <input value={value.homepage ?? ''} onChange={(e) => onChange('homepage', e.target.value)} className={INPUT_CLS} placeholder="https://..." />
+          </Field>
+          <Field>
+            <Label>GitHub</Label>
+            <input value={value.github_url ?? ''} onChange={(e) => onChange('github_url', e.target.value)} className={INPUT_CLS} placeholder="https://github.com/..." />
+          </Field>
+          <Field>
+            <Label>Docs</Label>
+            <input value={value.docs_url ?? ''} onChange={(e) => onChange('docs_url', e.target.value)} className={INPUT_CLS} placeholder="https://docs..." />
+          </Field>
+        </div>
+      </Fieldset>
 
-      {showNotes && (
+      <Fieldset legend="Profile">
         <Field>
-          <Label>Your Notes</Label>
+          <Label>What It Is</Label>
           <textarea
-            value={value.personal_notes ?? ''}
-            onChange={(e) => onChange('personal_notes', e.target.value)}
+            value={value.what_it_is ?? ''}
+            onChange={(e) => onChange('what_it_is', e.target.value)}
             rows={3}
             className={`${INPUT_CLS} resize-none`}
           />
         </Field>
+
+        <Field>
+          <Label>Why It Exists</Label>
+          <textarea
+            value={value.why_it_exists ?? ''}
+            onChange={(e) => onChange('why_it_exists', e.target.value)}
+            rows={3}
+            className={`${INPUT_CLS} resize-none`}
+          />
+        </Field>
+
+        <Field>
+          <Label>Key Features (one per line)</Label>
+          <textarea
+            value={value.features.join('\n')}
+            onChange={(e) => onChange('features', e.target.value.split('\n'))}
+            rows={4}
+            className={`${INPUT_CLS} resize-none font-mono text-label`}
+          />
+        </Field>
+      </Fieldset>
+
+      <Fieldset legend="Fit">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <Field>
+            <Label>When to Use (one per line)</Label>
+            <textarea
+              value={value.when_to_use.join('\n')}
+              onChange={(e) => onChange('when_to_use', e.target.value.split('\n'))}
+              rows={4}
+              className={`${INPUT_CLS} resize-none font-mono text-label`}
+            />
+          </Field>
+          <Field>
+            <Label>When Not to Use (one per line)</Label>
+            <textarea
+              value={value.when_not_to_use.join('\n')}
+              onChange={(e) => onChange('when_not_to_use', e.target.value.split('\n'))}
+              rows={4}
+              className={`${INPUT_CLS} resize-none font-mono text-label`}
+            />
+          </Field>
+        </div>
+
+        <Field>
+          <Label>Tags (comma-separated, kebab-case)</Label>
+          <input
+            value={value.tags.join(', ')}
+            onChange={(e) => onChange('tags', normalizeTags(e.target.value.split(',')))}
+            className={`${INPUT_CLS} font-mono text-label`}
+            placeholder="open-source, cli, docker"
+          />
+        </Field>
+      </Fieldset>
+
+      {showNotes && (
+        <Fieldset legend="Notes">
+          <Field>
+            <Label>Your Notes</Label>
+            <textarea
+              value={value.personal_notes ?? ''}
+              onChange={(e) => onChange('personal_notes', e.target.value)}
+              rows={3}
+              className={`${INPUT_CLS} resize-none`}
+            />
+          </Field>
+        </Fieldset>
       )}
     </div>
   )

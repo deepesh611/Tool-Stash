@@ -1,3 +1,4 @@
+import { Check, Loader2, X } from 'lucide-react'
 import type { ResearchActivity } from '../types'
 
 export type ActivityItem = ResearchActivity & { id: number }
@@ -34,13 +35,26 @@ export function applyActivity(items: ActivityItem[], event: ResearchActivity): A
 }
 
 function StatusMark({ phase }: { phase: ActivityItem['phase'] }) {
+  const base = 'relative z-10 mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border'
   if (phase === 'start') {
-    return <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-500 animate-pulse" />
+    return (
+      <span className={`${base} border-brand-400/40 bg-brand-500/15 text-brand-300`}>
+        <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+      </span>
+    )
   }
   if (phase === 'error') {
-    return <span className="mt-0.5 text-red-400 text-xs shrink-0">✕</span>
+    return (
+      <span className={`${base} border-red-400/30 bg-red-500/15 text-red-300`}>
+        <X className="h-3 w-3" aria-hidden="true" />
+      </span>
+    )
   }
-  return <span className="mt-0.5 text-emerald-400 text-xs shrink-0">✓</span>
+  return (
+    <span className={`${base} border-emerald-400/30 bg-emerald-500/15 text-emerald-300`}>
+      <Check className="h-3 w-3" aria-hidden="true" />
+    </span>
+  )
 }
 
 export default function SearchActivityLog({
@@ -53,42 +67,46 @@ export default function SearchActivityLog({
   if (!items.length) return null
 
   return (
-    <div className="glass rounded-2xl p-4 mb-4">
+    <div className="glass-sunken rounded-2xl p-6 mb-6 animate-fade-rise">
       {title && (
-        <p className="text-xs text-white/35 mb-3 uppercase tracking-wider">{title}</p>
+        <p className="section-label mb-5">{title}</p>
       )}
-      <ol className="space-y-3">
+      <ol className="relative space-y-5">
         {items.map((item) => (
-          <li key={item.id} className="flex gap-2.5">
+          <li key={item.id} className="relative flex gap-3.5 last:[&>.rail]:hidden">
+            <span
+              className="rail absolute left-[0.59rem] top-6 bottom-[-1.25rem] w-px bg-white/[0.08]"
+              aria-hidden="true"
+            />
             <StatusMark phase={item.phase} />
             <div className="min-w-0 flex-1">
               {item.action === 'search' ? (
                 <>
-                  <p className="text-sm text-gray-200">
+                  <p className="text-body text-white/85">
                     Search
                     {item.query && (
-                      <span className="ml-2 font-mono text-brand-400">“{item.query}”</span>
+                      <span className="ml-2 font-mono text-brand-300">“{item.query}”</span>
                     )}
                   </p>
                   {item.phase === 'start' && (
-                    <p className="text-xs text-gray-500 mt-0.5">Looking up sources…</p>
+                    <p className="text-label text-white/45 mt-1">Looking up sources…</p>
                   )}
                   {item.phase === 'error' && (
-                    <p className="text-xs text-red-400 mt-0.5">{item.message || 'Search failed'}</p>
+                    <p className="text-label text-red-300 mt-1">{item.message || 'Search failed'}</p>
                   )}
                   {item.results && item.results.length > 0 && (
-                    <ul className="mt-1.5 space-y-1">
+                    <ul className="mt-2.5 space-y-1.5">
                       {item.results.map((hit) => (
-                        <li key={hit.url || hit.title} className="text-xs text-gray-400 truncate">
+                        <li key={hit.url || hit.title} className="text-label text-white/55 truncate">
                           {hit.url ? (
                             <a
                               href={hit.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="hover:text-brand-300"
+                              className="rounded transition-colors duration-fast ease-smooth hover:text-brand-300 focus-ring"
                             >
-                              <span className="text-gray-200">{hit.title || hostname(hit.url)}</span>
-                              <span className="ml-1.5 text-gray-600">{hostname(hit.url)}</span>
+                              <span className="text-white/80">{hit.title || hostname(hit.url)}</span>
+                              <span className="ml-2 text-white/35 font-mono text-micro">{hostname(hit.url)}</span>
                             </a>
                           ) : (
                             <span>{hit.title}</span>
@@ -100,27 +118,27 @@ export default function SearchActivityLog({
                 </>
               ) : (
                 <>
-                  <p className="text-sm text-gray-200">
+                  <p className="text-body text-white/85">
                     Fetch
                     {item.url && (
                       <a
                         href={item.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="ml-2 font-mono text-brand-400 hover:text-brand-300"
+                        className="ml-2 font-mono text-brand-300 rounded underline-offset-4 hover:underline hover:text-brand-200 transition-colors duration-fast ease-smooth focus-ring"
                       >
                         {hostname(item.url) || item.url}
                       </a>
                     )}
                   </p>
                   {item.phase === 'start' && (
-                    <p className="text-xs text-gray-500 mt-0.5">Opening page…</p>
+                    <p className="text-label text-white/45 mt-1">Opening page…</p>
                   )}
                   {item.phase === 'done' && item.title && (
-                    <p className="text-xs text-gray-400 mt-0.5 truncate">{item.title}</p>
+                    <p className="text-label text-white/55 mt-1 truncate">{item.title}</p>
                   )}
                   {item.phase === 'error' && (
-                    <p className="text-xs text-red-400 mt-0.5">{item.message || 'Fetch failed'}</p>
+                    <p className="text-label text-red-300 mt-1">{item.message || 'Fetch failed'}</p>
                   )}
                 </>
               )}

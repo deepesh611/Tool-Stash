@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Outlet } from 'react-router-dom'
+import { Sparkle } from 'lucide-react'
 import Navbar from './Navbar'
 import { FRONTEND_VERSION, fetchBackendVersion } from '../api/version'
 import { isDemo } from '../lib/demoMode'
@@ -18,16 +19,22 @@ export default function Layout() {
         <div className="bg-ring bg-ring-b" />
       </div>
       {isDemo && (
-        <div className="relative z-20 text-center text-[11px] leading-relaxed tracking-wide text-white/70 bg-brand-600/25 border-b border-white/10 py-1.5 px-4">
-          Live demo — sample stash, simulated research. Changes reset on refresh.
+        <div className="relative z-20 flex items-center justify-center gap-2 px-4 py-2
+                        text-micro tracking-wide text-brand-100/80
+                        bg-gradient-to-r from-brand-600/20 via-rose-600/20 to-brand-600/20
+                        border-b border-white/[0.07]">
+          <Sparkle className="h-3 w-3 shrink-0 text-brand-300" aria-hidden="true" />
+          <span>Live demo — sample stash, simulated research. Changes reset on refresh.</span>
         </div>
       )}
       <Navbar />
-      <main className="flex-1 container mx-auto max-w-6xl px-4 py-8">
+      <main className="flex-1 container mx-auto max-w-7xl px-6 sm:px-8 py-12 sm:py-16">
         <Outlet />
       </main>
-      <footer className="border-t border-white/[0.06] py-4 text-center text-[11px] text-white/30 font-mono">
-        frontend {FRONTEND_VERSION} · backend {backendVersion}
+      <footer className="border-t border-white/[0.05] py-8 text-center">
+        <p className="text-micro text-white/25 font-mono tracking-wider">
+          frontend {FRONTEND_VERSION} · backend {backendVersion}
+        </p>
       </footer>
     </div>
   )

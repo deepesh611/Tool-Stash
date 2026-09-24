@@ -4,18 +4,23 @@ import { getLlmSettings, updateLlmSettings } from '../api/ai'
 import { isDemo } from '../lib/demoMode'
 
 const PROVIDER_COLORS: Record<string, string> = {
-  claude: 'text-orange-400',
-  openai: 'text-green-400',
-  ollama: 'text-blue-400',
+  claude: 'text-orange-300',
+  openai: 'text-emerald-300',
+  ollama: 'text-sky-300',
 }
 
 function providerColor(id: string) {
-  if (id.startsWith('custom:')) return 'text-rose-300'
-  return PROVIDER_COLORS[id] ?? 'text-gray-300'
+  if (id.startsWith('custom:')) return 'text-rose-200'
+  return PROVIDER_COLORS[id] ?? 'text-white/70'
 }
 
-const SELECT_CLS = `bg-white/[0.05] border border-white/[0.1] rounded-lg px-2 py-1 text-xs font-mono
-                    text-gray-200 focus:outline-none focus:border-brand-400/50 max-w-[7.5rem] sm:max-w-[11rem] backdrop-blur-md`
+const SELECT_CLS = `bg-white/[0.04] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-micro font-mono
+                    text-white/80 placeholder-white/25 backdrop-blur-md
+                    hover:border-white/[0.16] hover:bg-white/[0.07]
+                    focus:outline-none focus:border-brand-400/50 focus:ring-2 focus:ring-brand-400/20
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                    max-w-[7.5rem] sm:max-w-[11rem]
+                    transition-all duration-base ease-smooth`
 
 export default function LlmPicker() {
   const [settings, setSettings] = useState<LlmSettings | null>(null)
@@ -39,7 +44,7 @@ export default function LlmPicker() {
 
   if (isDemo) {
     return (
-      <span className="hidden sm:inline text-[11px] font-mono text-white/40 border border-white/10 rounded-lg px-2 py-1 bg-white/[0.04]">
+      <span className="hidden sm:inline-flex items-center text-micro font-mono text-white/45 border border-white/[0.08] rounded-lg px-2.5 py-1.5 bg-white/[0.04]">
         Demo preview
       </span>
     )
@@ -66,12 +71,12 @@ export default function LlmPicker() {
   }
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-2">
       <select
         value={settings.provider}
         disabled={saving}
         onChange={(e) => onProviderChange(e.target.value as LlmProviderId)}
-        className={`${SELECT_CLS} ${providerColor(settings.provider)}`}
+        className={`${SELECT_CLS} select-chevron ${providerColor(settings.provider)}`}
         title="LLM provider"
       >
         {settings.providers.map((item) => (

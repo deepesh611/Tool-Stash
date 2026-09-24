@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { Download, PackageOpen, Search, SlidersHorizontal, Upload, X } from 'lucide-react'
 import type { Tool } from '../types'
 import { getTools, deleteTool, getCategories, getAllTags, exportStash, importStash } from '../api/tools'
 import ToolCard from '../components/ToolCard'
@@ -112,37 +113,29 @@ export default function Browse() {
   return (
     <div>
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between mb-6 gap-4">
+      <header className="flex flex-wrap items-end justify-between gap-6 mb-12">
         <div>
           <h1 className="page-title">Your Stash</h1>
           {!loading && (
-            <p className="text-xs text-white/40 mt-1">
-              {tools.length} tool{tools.length !== 1 ? 's' : ''}
+            <p className="mt-3 text-label text-white/40 tracking-wide">
+              <span className="font-mono text-brand-300/90">{tools.length}</span>
+              {' '}tool{tools.length !== 1 ? 's' : ''}
               {hasFilters ? ' matching filters' : ' total'}
             </p>
           )}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {hasFilters && (
-            <button
-              onClick={clearFilters}
-              className="text-xs text-white/40 hover:text-white transition-colors"
-            >
-              Clear filters ✕
-            </button>
-          )}
-          <button
-            onClick={handleExport}
-            className="btn-ghost !text-xs !py-1.5 !px-3"
-          >
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button onClick={handleExport} className="btn-ghost btn-sm">
+            <Download className="h-3.5 w-3.5" aria-hidden="true" />
             Export
           </button>
-          <label className="btn-ghost !text-xs !py-1.5 !px-3 cursor-pointer">
+          <label className="btn-ghost btn-sm cursor-pointer focus-within:ring-2 focus-within:ring-brand-400/55 focus-within:ring-offset-2 focus-within:ring-offset-ink">
+            <Upload className="h-3.5 w-3.5" aria-hidden="true" />
             Import
             <input
               type="file"
               accept="application/json,.json"
-              className="hidden"
+              className="sr-only"
               onChange={(e) => {
                 const file = e.target.files?.[0]
                 void handleImport(file)
@@ -151,92 +144,153 @@ export default function Browse() {
             />
           </label>
         </div>
-      </div>
+      </header>
+
       {ioMessage && (
         <div
-          className={`mb-4 p-3 rounded-lg text-sm ${
+          role="status"
+          className={`mb-8 px-5 py-3.5 rounded-xl text-body animate-fade-rise ${
             ioTone === 'error'
-              ? 'bg-red-500/10 border border-red-400/20 text-red-300'
+              ? 'bg-red-500/[0.08] border border-red-400/20 text-red-200'
               : ioTone === 'warn'
-                ? 'bg-amber-500/10 border border-amber-400/20 text-amber-200'
-                : 'glass text-white/70'
+                ? 'bg-amber-500/[0.08] border border-amber-400/20 text-amber-100'
+                : 'glass-sunken text-white/70'
           }`}
         >
           {ioMessage}
         </div>
       )}
       {loadError && (
-        <p className="text-xs text-red-400 -mt-4 mb-4">{loadError}</p>
+        <p className="mb-8 text-body text-red-300">{loadError}</p>
       )}
 
-      {/* Search */}
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Search by name or description..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="input-glass"
-        />
-      </div>
-
-      {/* Category filters */}
-      {categories.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          <button
-            onClick={() => setActiveCategory('')}
-            className={`text-xs px-3 py-1 rounded-full border backdrop-blur-sm transition-all
-              ${!activeCategory
-                ? 'bg-brand-600/90 border-brand-500/80 text-white shadow-[0_0_16px_rgba(196,132,58,0.35)]'
-                : 'border-white/10 text-white/50 hover:border-white/25 hover:text-white'}`}
-          >
-            All
-          </button>
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat === activeCategory ? '' : cat)}
-              className={`text-xs px-3 py-1 rounded-full border backdrop-blur-sm transition-all
-                ${cat === activeCategory
-                  ? 'bg-brand-600/90 border-brand-500/80 text-white shadow-[0_0_16px_rgba(196,132,58,0.35)]'
-                  : 'border-white/10 text-white/50 hover:border-white/25 hover:text-white'}`}
-            >
-              {cat}
-            </button>
-          ))}
+      {/* Filter shelf — search, categories and tags read as one object */}
+      <section
+        aria-label="Filters"
+        className="glass-sunken rounded-2xl mb-12 divide-y divide-white/[0.05]"
+      >
+        <div className="relative">
+          <Search
+            className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30"
+            aria-hidden="true"
+          />
+          <input
+            type="text"
+            placeholder="Search by name or description..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            aria-label="Search your stash"
+            className="w-full bg-transparent border-0 rounded-t-2xl pl-[3.25rem] pr-5 py-4
+                       text-body text-white placeholder-white/30
+                       focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-400/25
+                       transition-all duration-base ease-smooth"
+          />
         </div>
-      )}
 
-      <TagFilter tags={allTags} active={activeTag} onChange={setActiveTag} />
+        {categories.length > 0 && (
+          <div className="px-5 py-5">
+            <div className="flex items-center gap-2 mb-4">
+              <SlidersHorizontal className="h-3 w-3 text-white/30" aria-hidden="true" />
+              <span className="section-label">Category</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setActiveCategory('')}
+                aria-pressed={!activeCategory}
+                className={`filter-pill ${!activeCategory ? 'filter-pill-active' : ''}`}
+              >
+                All
+              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat === activeCategory ? '' : cat)}
+                  aria-pressed={cat === activeCategory}
+                  className={`filter-pill ${cat === activeCategory ? 'filter-pill-active' : ''}`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {allTags.length > 0 && (
+          <div className="px-5 py-5">
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <span className="section-label">Tags</span>
+              {hasFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="inline-flex items-center gap-1 text-label text-white/40
+                             hover:text-white rounded transition-colors duration-fast ease-smooth focus-ring"
+                >
+                  <X className="h-3 w-3" aria-hidden="true" />
+                  Clear filters
+                </button>
+              )}
+            </div>
+            <TagFilter tags={allTags} active={activeTag} onChange={setActiveTag} />
+          </div>
+        )}
+      </section>
 
       {/* Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="glass rounded-2xl h-48 animate-pulse" />
+            <div key={i} className="glass rounded-2xl p-7 flex flex-col gap-5">
+              <div className="flex items-center gap-2.5">
+                <div className="skeleton h-4 w-2/5" />
+                <div className="skeleton h-4 w-20 rounded-full" />
+              </div>
+              <div className="space-y-2">
+                <div className="skeleton h-3 w-full" />
+                <div className="skeleton h-3 w-4/5" />
+              </div>
+              <div className="space-y-2 pt-1">
+                <div className="skeleton h-3 w-3/4" />
+                <div className="skeleton h-3 w-2/3" />
+              </div>
+              <div className="flex gap-1.5 pt-1">
+                <div className="skeleton h-5 w-16 rounded-full" />
+                <div className="skeleton h-5 w-20 rounded-full" />
+                <div className="skeleton h-5 w-14 rounded-full" />
+              </div>
+            </div>
           ))}
         </div>
       ) : tools.length === 0 ? (
-        <div className="text-center py-24 text-white/40">
-          <p className="text-5xl mb-4">📦</p>
+        <div className="flex flex-col items-center text-center py-28 animate-fade-rise">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full
+                          bg-white/[0.04] border border-white/[0.07] shadow-elev-1 mb-7">
+            <PackageOpen className="h-8 w-8 text-white/30" aria-hidden="true" />
+          </div>
           {hasFilters ? (
             <>
-              <p className="text-base">No tools match your filters.</p>
-              <button onClick={clearFilters} className="text-sm mt-2 text-brand-400 hover:underline">
+              <p className="section-title mb-2">No tools match your filters.</p>
+              <p className="text-body text-white/45 mb-7">
+                Try a broader search or a different category.
+              </p>
+              <button onClick={clearFilters} className="btn-ghost">
+                <X className="h-3.5 w-3.5" aria-hidden="true" />
                 Clear filters
               </button>
             </>
           ) : (
             <>
-              <p className="text-base">Your stash is empty.</p>
-              <p className="text-sm mt-1">
-                <a href="/add" className="text-brand-400 hover:underline">Add your first tool →</a>
+              <p className="section-title mb-2">Your stash is empty.</p>
+              <p className="text-body text-white/45 mb-7">
+                Add a tool by name or URL and let the agent fill in the profile.
               </p>
+              <a href="/add" className="btn-primary">
+                Add your first tool
+              </a>
             </>
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {tools.map((tool) => (
             <ToolCard key={tool.id} tool={tool} onDelete={handleDelete} />
           ))}

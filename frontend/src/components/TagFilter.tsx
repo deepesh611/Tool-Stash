@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 
 export default function TagFilter({
   tags,
@@ -33,21 +34,19 @@ export default function TagFilter({
     : tags
 
   return (
-    <div className="mb-6">
+    <div>
       <div
         ref={wrapRef}
-        className={`flex flex-wrap gap-1.5 ${
-          open ? 'max-h-40 overflow-y-auto pr-1' : 'max-h-[4.5rem] overflow-hidden'
+        className={`flex flex-wrap gap-2 transition-all duration-slow ease-smooth ${
+          open ? 'max-h-52 overflow-y-auto pr-1' : 'max-h-[3.75rem] overflow-hidden'
         }`}
       >
         {ordered.map((tag) => (
           <button
             key={tag}
             onClick={() => onChange(tag === active ? '' : tag)}
-            className={`text-xs px-2.5 py-0.5 rounded-full font-mono border transition-all
-              ${tag === active
-                ? 'bg-white/15 border-white/25 text-white'
-                : 'border-white/[0.08] text-white/40 hover:border-white/20 hover:text-white/70'}`}
+            className={`chip-interactive ${tag === active ? 'chip-active' : ''}`}
+            aria-pressed={tag === active}
           >
             #{tag}
           </button>
@@ -57,8 +56,13 @@ export default function TagFilter({
         <button
           type="button"
           onClick={() => setOpen((prev) => !prev)}
-          className="mt-1.5 text-xs text-white/40 hover:text-white/70 transition-colors"
+          className="mt-3 inline-flex items-center gap-1 text-label text-white/40
+                     hover:text-white/75 rounded transition-colors duration-fast ease-smooth focus-ring"
         >
+          <ChevronDown
+            className={`h-3 w-3 transition-transform duration-base ease-smooth ${open ? 'rotate-180' : ''}`}
+            aria-hidden="true"
+          />
           {open ? 'Show less' : `Show all ${tags.length} tags`}
         </button>
       )}
