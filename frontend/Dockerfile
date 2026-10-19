@@ -1,14 +1,17 @@
 # Stage 1: Build
 FROM node:20-alpine AS builder
 
+# Enable corepack so pnpm is available without a separate install step
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 COPY . .
 ARG APP_VERSION=dev
 ENV VITE_APP_VERSION=$APP_VERSION
-RUN npm run build
+RUN pnpm run build
 
 # Stage 2: Serve
 FROM nginx:1.27-alpine
