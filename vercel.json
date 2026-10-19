@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "npm ci --prefix frontend",
-  "buildCommand": "VITE_DEMO=true npm run build --prefix frontend",
+  "installCommand": "cd frontend && pnpm install --frozen-lockfile",
+  "buildCommand": "cd frontend && VITE_DEMO=true pnpm run build",
   "outputDirectory": "frontend/dist",
   "framework": null,
   "env": {
